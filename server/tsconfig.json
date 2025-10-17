@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "typeRoots": ["./node_modules/@types", "./src/shared/types"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/domains/*": ["src/domains/*"],
+      "@/shared/*": ["src/shared/*"],
+      "@/app/*": ["src/app/*"],
+      "@/infrastructure/*": ["src/infrastructure/*"]
+    }
+  },
+  "include": ["src", "src/shared/types"],
+  "exclude": ["node_modules", "dist"]
+} 
