@@ -1,8 +1,8 @@
 import express from 'express'
 import dotenv from 'dotenv'
-import mongoose from 'mongoose'
 import { Server as SocketIOServer } from 'socket.io';
 import errorMiddleware from './app/middlewares/errorMiddleware';
+import authRoutes from './app/routes/auth.routes';
 import cors from 'cors'
 import morgan from 'morgan'
 import http from 'http'
@@ -25,7 +25,8 @@ app.use(morgan('dev'))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 
-
+// routes
+app.use('/api/auth', authRoutes);
 
 app.use(errorMiddleware);
 
