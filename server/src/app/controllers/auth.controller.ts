@@ -89,3 +89,73 @@ export async function login(req: Request, res: Response): Promise<void> {
 
 }
 
+export async function getProfile(req: Request, res: Response) : Promise<void> {
+    try {
+
+        const userId = (req.body as any).userId;
+        if(!userId) {
+            return sendError({res, error: 'Unauthorized', status: 401});
+        }
+
+        const user = await User.findById(userId);
+        if(!user) {
+            return sendError({res, error: 'User not found', status: 404});
+        }
+
+        return sendSuccess({
+            res,
+            data:user,
+            status:200,
+            message: "User profile fetched successfully"
+        })
+
+    }
+    catch(err) {
+        return sendError({res, error: 'Failed to get user profile', details: err as any, status: 500});
+    }
+}
+
+export async function getUserById(req: Request, res: Response) : Promise<void> {
+    try {
+
+        const { userId } = req.params;
+        if(!userId){
+            return sendError({res, error: 'User ID is required', status: 400});
+        }
+        const user = await User.findById(userId);
+        if(!user){
+            return sendError({res, error: 'User not found', status: 404});
+        }
+        const userObj = user.toObject();
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete (userObj as any).password;
+
+        return sendSuccess({
+            res,
+            data: userObj,
+            status: 200,
+            message: "User fetched successfully"
+        })
+
+    }
+    catch(err){
+        return sendError({res, error: 'Failed to get user', status: 500});
+    }
+}
+
+export async function getAllUsers(req: Request, res: Response) : Promise<void> {
+    try {
+
+        const users = await User.find();
+        return sendSuccess({
+            res,
+            data: {users, length: users.length},
+            status: 200,
+            message: "Users fetched successfully"
+        })
+
+    }
+    catch(err){
+        return sendError({res, error: 'Failed to get users', details: err as any, status: 500});
+    }
+}

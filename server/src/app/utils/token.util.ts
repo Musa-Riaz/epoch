@@ -31,3 +31,12 @@ export function verifyToken(token: string): TokenPayload{
     }
 
 }
+
+// extracting the access token from authorization header
+export function extractToken(authHeader: string | undefined) : string | null {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+  return authHeader.split(' ')[1];
+
+}
