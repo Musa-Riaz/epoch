@@ -34,7 +34,11 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "dev:nodemon": "nodemon --watch src --ext ts,js --exec \"npx ts-node --project tsconfig.json src/index.ts\""
+    "dev:nodemon": "nodemon --watch src --ext ts,js --exec \"npx ts-node --project tsconfig.json src/index.ts\"",
+    "seed:users": "ts-node src/seed/users.seed.ts",
+    "seed:projects": "ts-node src/seed/projects.seed.ts",
+    "seed:tasks": "ts-node src/seed/tasks.seed.ts",
+    "seed": "ts-node src/seed/users.seed.ts && ts-node src/seed/projects.seed.ts && ts-node src/seed/tasks.seed.ts"
   },
   "keywords": [],
   "author": "",
