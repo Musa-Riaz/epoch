@@ -1,11 +1,12 @@
 import {Router} from 'express';
 import {signup, login, getProfile, getAllUsers, getUserById} from '../controllers/auth.controller';
 import { authMiddleware, requireRole } from '../middlewares/authMiddleware';
+import { validateRequest, signupSchema, loginSchema } from '../validators/schemas';
 
 const router = Router();
 
-router.post('/signup', signup);
-router.post('/login', login);
+router.post('/signup', validateRequest(signupSchema), signup);
+router.post('/login', validateRequest(loginSchema), login);
 router.get('/profile', getProfile);
 
 // Admin routes
