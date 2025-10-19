@@ -1,12 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TaskCard from "@/components/cards/TaskCard";
+import {arrayMove, SortableContext} from '@dnd-kit/sortable'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,8 +26,66 @@ import {
   Grid3x3
 } from "lucide-react";
 import Image from "next/image";
+import { closestCorners, DndContext } from "@dnd-kit/core";
+
+type Task = {
+    id: number;
+    priority: string;
+    title: string;
+    description: string;
+}
+
+
 
 const MemberDashboard = () => {
+    const [tasks, setTasks] = useState<Task[]>([
+    {
+    id: 1,
+    priority:'low',
+    title:'Design',
+    description:'asdasdasdasdasdasd'
+},
+    {
+    id: 2,
+    priority:'low',
+    title:'Design',
+    description:'asdasdasdasdasdasd'
+},
+    {
+    id: 3,
+    priority:'low',
+    title:'Design',
+    description:'asdasdasdasdasdasd'
+},
+    {
+    id: 4,
+    priority:'low',
+    title:'Design',
+    description:'asdasdasdasdasdasd'
+},
+
+
+])
+
+
+   const getTasksPos = (id: number) => {
+    return tasks.findIndex((task) => task.id === id)
+   }
+
+    const handleDragEvent = (event) => {
+        const {active, over} = event
+        if(active.id === over.id) return ;
+
+        setTasks((tasks) => {
+            const originalPos = getTasksPos(active.id)
+            const newPos = getTasksPos(over.id);
+
+            return arrayMove(tasks, originalPos, newPos);
+        })
+        
+
+    }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -89,7 +149,9 @@ const MemberDashboard = () => {
         {/* Kanban Board */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* To Do Column */}
-          <div className="space-y-4">
+        <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEvent}>
+           
+          <div className="space-y-4 bg-slate-800 rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-500" />
@@ -102,153 +164,23 @@ const MemberDashboard = () => {
             </div>
 
             <div className="space-y-3">
-              {/* Task Card 1 */}
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <Badge variant="secondary" className="text-xs">Low</Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <MoreVertical className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
-                        <DropdownMenuItem>Move to...</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <CardTitle className="text-base font-semibold mt-2">
-                    Brainstorming
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Brainstorming brings team members&apos; diverse experience into play
-                  </p>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-3">
-                      <div className="flex -space-x-1">
-                        {[1, 2, 3].map((i) => (
-                          <Avatar key={i} className="border-2 border-background w-6 h-6">
-                            <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-600 text-white text-xs">
-                              {i}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MessageSquare className="h-3 w-3" />
-                        <span className="text-xs">12 comments</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Paperclip className="h-3 w-3" />
-                      <span className="text-xs">0 files</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
-              {/* Task Card 2 */}
-              <Card className="hover:shadow-md transition-shadow cursor-pointer border-orange-200 dark:border-orange-900">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <Badge variant="destructive" className="text-xs bg-orange-500">High</Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <MoreVertical className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
-                        <DropdownMenuItem>Move to...</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <CardTitle className="text-base font-semibold mt-2">
-                    Research
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    User research helps you create an optimal product for users
-                  </p>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-3">
-                      <div className="flex -space-x-1">
-                        {[1, 2].map((i) => (
-                          <Avatar key={i} className="border-2 border-background w-6 h-6">
-                            <AvatarFallback className="bg-gradient-to-br from-green-400 to-blue-600 text-white text-xs">
-                              {i}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MessageSquare className="h-3 w-3" />
-                        <span className="text-xs">10 comments</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Paperclip className="h-3 w-3" />
-                      <span className="text-xs">3 files</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
-              {/* Task Card 3 */}
-              <Card className="hover:shadow-md transition-shadow cursor-pointer border-red-200 dark:border-red-900">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <Badge variant="destructive" className="text-xs">High</Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <MoreVertical className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
-                        <DropdownMenuItem>Move to...</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <CardTitle className="text-base font-semibold mt-2">
-                    Wireframes
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Low fidelity wireframes include the most basic content and visuals
-                  </p>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="border-2 border-background w-6 h-6">
-                        <AvatarFallback className="bg-gradient-to-br from-yellow-400 to-orange-600 text-white text-xs">
-                          1
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex items-center gap-1">
-                        <MessageSquare className="h-3 w-3" />
-                        <span className="text-xs">10 comments</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Paperclip className="h-3 w-3" />
-                      <span className="text-xs">3 files</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+<SortableContext items={tasks} >
+                {tasks?.map((task) => (
+                    <TaskCard
+                    key={task.id}
+                    id={task.id}
+                    priority={task.priority}
+                    title={task.title}
+                    description={task.description}
+                    />
+                ))}
+                </SortableContext>
+
             </div>
           </div>
+          </DndContext>
 
           {/* On Progress Column */}
           <div className="space-y-4">
