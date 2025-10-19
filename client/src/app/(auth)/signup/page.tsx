@@ -7,7 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, Layers, Users, TrendingUp, Zap } from "lucide-react";
-import { type } from '../../../../.next/types/routes';
+import { useAuthStore } from "@/stores/auth.store";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -18,10 +21,26 @@ export default function SignUp() {
     confirmPassword: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { signup } = useAuthStore();
+  const router  = useRouter();
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement signup logic
-    console.log("Signup attempt:", formData);
+    try{
+
+        await signup(formData)
+        toast.success("Account created successfully! Please log in.");
+        // Redirect to login page or perform other actions
+        router.push('/login');
+
+    }
+    catch(err: unknown){
+        console.error(err);
+        if (err instanceof Error) {
+            toast.error(err.message);
+        } else {
+            toast.error(String(err));
+        }
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

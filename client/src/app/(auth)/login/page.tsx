@@ -9,22 +9,40 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { CheckCircle2, Layers, Users, TrendingUp } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const router = useRouter();
 
-  const {login} = useAuthStore();
+  const { login } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await login(email, password);
       toast.success("Logged in successfully!");
+      // get the user role from the store after login
+      const userRole = useAuthStore.getState().user?.role;
+      
+      switch (userRole){
+        case 'admin':
+          router.push('/admin-dashboard');
+          break;
+        case 'manager':
+          router.push('/manager-dashboard');
+          break;
+        case 'member':
+          router.push('/member-dashboard');
+          break;
+      }
+
     } catch (err: unknown) {
       console.error(err);
       if (err instanceof Error) {
-        toast.error(err.message);
+        const responseError = (err as any).response?.data?.error;
+        toast.error(responseError ?? err.message);
       } else {
         toast.error(String(err));
       }
@@ -33,8 +51,8 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-12 flex-col justify-between relative overflow-hidden">
+      {/* Left side - Branding */} 
+     <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-12 flex-col justify-between relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-8">

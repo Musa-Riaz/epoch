@@ -3,7 +3,7 @@ export interface IUserResponse {
     firstName: string;
     lastName: string;
     email: string;
-    role: 'user' | 'admin' | 'manager';
+    role: 'member' | 'admin' | 'manager';
     profilePictureUrl?: string;
     createdAt: string;
     updatedAt: string;
