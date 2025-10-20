@@ -3,12 +3,10 @@
 import React, { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TaskCard from "@/components/cards/TaskCard";
-import {arrayMove, SortableContext} from '@dnd-kit/sortable'
+import { SortableContext} from '@dnd-kit/sortable'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,65 +23,229 @@ import {
   Share2,
   Grid3x3
 } from "lucide-react";
-import Image from "next/image";
-import { closestCorners, DndContext } from "@dnd-kit/core";
-
+import { closestCorners, DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input";
+import {Label} from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea";
+import { DialogClose } from "@radix-ui/react-dialog";
+import { useTaskStore } from "@/stores/task.store";
+import { toast } from "react-hot-toast";
 type Task = {
-    id: number;
-    priority: string;
+    id: string;
+    priority: "low" | "medium" | "high" ;
     title: string;
     description: string;
+    status: 'todo' | 'inProgress' | 'done';
+    media?: File 
 }
-
-
 
 const MemberDashboard = () => {
     const [tasks, setTasks] = useState<Task[]>([
-    {
-    id: 1,
-    priority:'low',
-    title:'Design',
-    description:'asdasdasdasdasdasd'
-},
-    {
-    id: 2,
-    priority:'low',
-    title:'Design',
-    description:'asdasdasdasdasdasd'
-},
-    {
-    id: 3,
-    priority:'low',
-    title:'Design',
-    description:'asdasdasdasdasdasd'
-},
-    {
-    id: 4,
-    priority:'low',
-    title:'Design',
-    description:'asdasdasdasdasdasd'
-},
+        {
+            id: '1',
+            priority: 'low',
+            title: 'Brainstorming',
+            description: 'Brainstorming brings team members diverse experience into play',
+            status: 'todo'
+        },
+        {
+            id: '2',
+            priority: 'high',
+            title: 'Research',
+            description: 'User research helps you create an optimal product for users',
+            status: 'todo'
+        },
+        {
+            id: '3',
+            priority: 'high',
+            title: 'Wireframes',
+            description: 'Low fidelity wireframes include the most basic content',
+            status: 'todo'
+        },
+        {
+            id: '4',
+            priority: 'low',
+            title: 'Onboarding Illustrations',
+            description: 'Create beautiful onboarding illustrations',
+            status: 'inProgress'
+        },
+        {
+            id: '5',
+            priority: 'low',
+            title: 'Moodboard',
+            description: 'Create a moodboard for the project',
+            status: 'inProgress'
+        },
+        {
+            id: '6',
+            priority: 'high',
+            title: 'Mobile App Design',
+            description: 'Design the mobile app interface',
+            status: 'done'
+        },
+        {
+            id: '7',
+            priority: 'high',
+            title: 'Design System',
+            description: 'It just needs to adapt the UI from what you did before',
+            status: 'done'
+        },
+    ]);
 
+    const [activeTask, setActiveTask] = useState<Task | null>(null);
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
+    const [media, setMedia] = useState<File | null>(null);
 
-])
+    const { createTask } = useTaskStore();
 
-
-   const getTasksPos = (id: number) => {
-    return tasks.findIndex((task) => task.id === id)
-   }
-
-    const handleDragEvent = (event) => {
-        const {active, over} = event
-        if(active.id === over.id) return ;
-
-        setTasks((tasks) => {
-            const originalPos = getTasksPos(active.id)
-            const newPos = getTasksPos(over.id);
-
-            return arrayMove(tasks, originalPos, newPos);
+    // Configure sensors for better drag experience
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // 8px of movement required to start drag
+            },
         })
-        
+    );
 
+    // Get tasks by status
+    const todoTasks = tasks.filter(task => task.status === 'todo');
+    const inProgressTasks = tasks.filter(task => task.status === 'inProgress');
+    const doneTasks = tasks.filter(task => task.status === 'done');
+
+    const handleDragStart = (event: DragStartEvent) => {
+        const { active } = event;
+        const activeTask = tasks.find(task => task.id === active.id);
+        setActiveTask(activeTask || null);
+    };
+
+    const handleDragOver = (event: DragOverEvent) => {
+        const { active, over } = event;
+        
+        if (!over) return;
+
+        const activeId = active.id;
+        const overId = over.id;
+
+        if (activeId === overId) return;
+
+        const activeTask = tasks.find(t => t.id === activeId);
+        const overTask = tasks.find(t => t.id === overId);
+
+        if (!activeTask) return;
+
+        // Handle dropping over a column (droppable zone)
+        const isOverColumn = ['todo', 'inProgress', 'done'].includes(overId as string);
+        
+        if (isOverColumn) {
+            setTasks(tasks => {
+                const activeIndex = tasks.findIndex(t => t.id === activeId);
+                const newTasks = [...tasks];
+                newTasks[activeIndex] = { 
+                    ...newTasks[activeIndex], 
+                    status: overId as 'todo' | 'inProgress' | 'done' 
+                };
+                return newTasks;
+            });
+            return;
+        }
+
+        // Handle dropping over another task
+        if (overTask && activeTask.status !== overTask.status) {
+            setTasks(tasks => {
+                const activeIndex = tasks.findIndex(t => t.id === activeId);
+                const overIndex = tasks.findIndex(t => t.id === overId);
+                
+                const newTasks = [...tasks];
+                newTasks[activeIndex] = { 
+                    ...newTasks[activeIndex], 
+                    status: overTask.status 
+                };
+
+                // Reorder within the new column
+                const updatedTasks = [...newTasks];
+                const [movedTask] = updatedTasks.splice(activeIndex, 1);
+                updatedTasks.splice(overIndex, 0, movedTask);
+                
+                return updatedTasks;
+            });
+        }
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        
+        setActiveTask(null);
+
+        if (!over) return;
+
+        const activeId = active.id;
+        const overId = over.id;
+
+        if (activeId === overId) return;
+
+        setTasks(tasks => {
+            const activeTask = tasks.find(t => t.id === activeId);
+            const overTask = tasks.find(t => t.id === overId);
+
+            if (!activeTask) return tasks;
+
+            const activeIndex = tasks.findIndex(t => t.id === activeId);
+            const overIndex = tasks.findIndex(t => t.id === overId);
+
+            // If dropping in the same column, just reorder
+            if (activeTask.status === overTask?.status) {
+                const newTasks = [...tasks];
+                const [movedTask] = newTasks.splice(activeIndex, 1);
+                newTasks.splice(overIndex, 0, movedTask);
+                return newTasks;
+            }
+
+            return tasks;
+        });
+    };
+
+
+    const handleAddTask = async (status : 'todo' | 'in-progress' | 'done') : Promise<void> => {
+       try {
+      const res = await createTask({
+          projectId: '68f3bb9f6e9169a633a0ffe1', // For testing purposes
+          status,
+          title,
+          description,
+          priority,
+          media,
+        })
+        if(res){
+          toast.success("Task created successfully")
+        }
+       }
+       catch (err: unknown) {
+      if (err instanceof Error) {
+        const responseError = (err as any).response?.data?.error;
+        toast.error(responseError ?? err.message);
+      } else {
+        toast.error(String(err));
+      }
+    }
     }
 
   return (
@@ -146,294 +308,254 @@ const MemberDashboard = () => {
           </Button>
         </div>
 
+        
+
         {/* Kanban Board */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* To Do Column */}
-        <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEvent}>
-           
-          <div className="space-y-4 bg-slate-800 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <h3 className="font-semibold">To Do</h3>
-                <Badge variant="secondary" className="rounded-full">4</Badge>
+        <DndContext 
+          sensors={sensors}
+          collisionDetection={closestCorners} 
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* To Do Column */}
+            <div className="space-y-4 dark:bg-[#1e1e2f] bg-[#f5f5f5] rounded-xl p-3">
+              <div className="flex flex-col">
+                <div className="flex flex-row items-center justify-between">
+                       <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <h3 className="font-semibold">To Do</h3>
+                  <Badge variant="secondary" className="rounded-full">{todoTasks.length}</Badge>
+                </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:cursor-pointer">
+                      <Plus className="h-4 w-4 " />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add New Task</DialogTitle>
+                      </DialogHeader>
+                      <div className="grid grid-cols-1 gap-2 space-y-4">
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="task-title">Task Title</Label>
+                          <Input value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="Enter task title..." />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="task-details">Task Details</Label>
+                          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Enter task details..." />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="task-priority">Task Priority</Label>
+                          <Select  defaultValue={priority} onValueChange={(value) => setPriority(value)}>
+                            <SelectTrigger className="w-full">Select Priority</SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="low">Low</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="high">High</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="task-assignee">Upload File</Label>
+                          <Input type="file" id="task-assignee" />
+                        </div>
+
+                        <div className="flex justify-end gap-2">
+                          <Button variant='secondary' className="">
+                            <DialogClose>Close</DialogClose>
+                          </Button>
+                          <Button onClick={() => handleAddTask('todo')}>
+                           Add Task
+                            </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+             
+                <div className="w-full h-2 rounded-full mt-4 bg-blue-500" />
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
 
-            <div className="space-y-3">
-
-
-<SortableContext items={tasks} >
-                {tasks?.map((task) => (
+              <SortableContext items={todoTasks.map(t => t.id)}>
+                <div className="space-y-3 min-h-[200px]">
+                  {todoTasks.map((task) => (
                     <TaskCard
-                    key={task.id}
-                    id={task.id}
-                    priority={task.priority}
-                    title={task.title}
-                    description={task.description}
+                      key={task.id}
+                      id={task.id}
+                      priority={task.priority}
+                      title={task.title}
+                      description={task.description}
                     />
-                ))}
-                </SortableContext>
-
+                  ))}
+                </div>
+              </SortableContext>
             </div>
-          </div>
-          </DndContext>
 
-          {/* On Progress Column */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                <h3 className="font-semibold">On Progress</h3>
-                <Badge variant="secondary" className="rounded-full">3</Badge>
+            {/* In Progress Column */}
+            <div className="space-y-4 dark:bg-[#1e1e2f] bg-[#f5f5f5] rounded-xl p-3">
+           <div className="flex flex-col">
+                <div className="flex flex-row items-center justify-between">
+                       <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                  <h3 className="font-semibold">In Progress</h3>
+                  <Badge variant="secondary" className="rounded-full">{inProgressTasks.length}</Badge>
+                </div>
+                                <Dialog>
+                    <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:cursor-pointer">
+                      <Plus className="h-4 w-4 " />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add New Task</DialogTitle>
+                      </DialogHeader>
+                      <div className="grid grid-cols-1 gap-2 space-y-4">
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="task-title">Task Title</Label>
+                          <Input value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="Enter task title..." />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="task-details">Task Details</Label>
+                          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Enter task details..." />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="task-priority">Task Priority</Label>
+                          <Select  defaultValue={priority} onValueChange={(value) => setPriority(value)}>
+                            <SelectTrigger className="w-full">Select Priority</SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="low">Low</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="high">High</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="task-assignee">Upload File</Label>
+                          <Input type="file" id="task-assignee" />
+                        </div>
+
+                        <div className="flex justify-end gap-2">
+                          <Button variant='secondary' className="">
+                            <DialogClose>Close</DialogClose>
+                          </Button>
+                          <Button onClick={() => handleAddTask('in-progress')}>
+                           Add Task
+                            </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+             
+                <div className="w-full h-2 rounded-full mt-4 bg-yellow-500" />
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Plus className="h-4 w-4" />
-              </Button>
+
+              <SortableContext items={inProgressTasks.map(t => t.id)}>
+                <div className="space-y-3 min-h-[200px]">
+                  {inProgressTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      id={task.id}
+                      priority={task.priority}
+                      title={task.title}
+                      description={task.description}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
             </div>
 
-            <div className="space-y-3">
-              {/* Task Card */}
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <Badge variant="secondary" className="text-xs">Low</Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <MoreVertical className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
-                        <DropdownMenuItem>Move to...</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <CardTitle className="text-base font-semibold mt-2">
-                    Onboarding Illustrations
-                  </CardTitle>
-                  <div className="mt-3">
-                    <Image
-                    width={300}
-                    height={200} 
-                      src="/api/placeholder/300/150" 
-                      alt="Onboarding" 
-                      className="rounded-md w-full h-32 object-cover"
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-3">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-3">
-                      <div className="flex -space-x-1">
-                        {[1, 2].map((i) => (
-                          <Avatar key={i} className="border-2 border-background w-6 h-6">
-                            <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-blue-600 text-white text-xs">
-                              {i}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MessageSquare className="h-3 w-3" />
-                        <span className="text-xs">14 comments</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Paperclip className="h-3 w-3" />
-                      <span className="text-xs">15 files</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Done Column */}
+            <div className="space-y-4 dark:bg-[#1e1e2f] bg-[#f5f5f5] rounded-xl p-3">
+            <div className="flex flex-col">
+                <div className="flex flex-row items-center justify-between">
+                       <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  <h3 className="font-semibold">Done</h3>
+                  <Badge variant="secondary" className="rounded-full">{doneTasks.length}</Badge>
+                </div>
+                                  <Dialog>
+                    <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:cursor-pointer">
+                      <Plus className="h-4 w-4 " />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add New Task</DialogTitle>
+                      </DialogHeader>
+                       <div className="grid grid-cols-1 gap-2 space-y-4">
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="task-title">Task Title</Label>
+                          <Input value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="Enter task title..." />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="task-details">Task Details</Label>
+                          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Enter task details..." />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="task-priority">Task Priority</Label>
+                          <Select  defaultValue={priority} onValueChange={(value) => setPriority(value)}>
+                            <SelectTrigger className="w-full">Select Priority</SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="low">Low</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="high">High</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="task-assignee">Upload File</Label>
+                          <Input type="file" id="task-assignee" />
+                        </div>
 
-              {/* Task Card 2 */}
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <Badge variant="secondary" className="text-xs">Low</Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <MoreVertical className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
-                        <DropdownMenuItem>Move to...</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <CardTitle className="text-base font-semibold mt-2">
-                    Moodboard
-                  </CardTitle>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <img 
-                      src="/api/placeholder/150/100" 
-                      alt="Mood 1" 
-                      className="rounded-md w-full h-20 object-cover"
-                    />
-                    <img 
-                      src="/api/placeholder/150/100" 
-                      alt="Mood 2" 
-                      className="rounded-md w-full h-20 object-cover"
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-3">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="border-2 border-background w-6 h-6">
-                        <AvatarFallback className="bg-gradient-to-br from-pink-400 to-red-600 text-white text-xs">
-                          1
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex items-center gap-1">
-                        <MessageSquare className="h-3 w-3" />
-                        <span className="text-xs">9 comments</span>
+                        <div className="flex justify-end gap-2">
+                          <Button variant='secondary' className="">
+                            <DialogClose>Close</DialogClose>
+                          </Button>
+                          <Button onClick={() => handleAddTask('done')}>
+                           Add Task
+                            </Button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Paperclip className="h-3 w-3" />
-                      <span className="text-xs">10 files</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Done Column */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500" />
-                <h3 className="font-semibold">Done</h3>
-                <Badge variant="secondary" className="rounded-full">2</Badge>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+             
+                <div className="w-full h-2 rounded-full mt-4 bg-green-500" />
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
 
-            <div className="space-y-3">
-              {/* Task Card */}
-              <Card className="hover:shadow-md transition-shadow cursor-pointer border-green-200 dark:border-green-900">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <Badge className="text-xs bg-green-500">Completed</Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <MoreVertical className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
-                        <DropdownMenuItem>Move to...</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <CardTitle className="text-base font-semibold mt-2">
-                    Mobile App Design
-                  </CardTitle>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <img 
-                      src="/api/placeholder/150/100" 
-                      alt="Design 1" 
-                      className="rounded-md w-full h-20 object-cover"
+              <SortableContext items={doneTasks.map(t => t.id)}>
+                <div className="space-y-3 min-h-[200px]">
+                  {doneTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      id={task.id}
+                      priority={task.priority}
+                      title={task.title}
+                      description={task.description}
                     />
-                    <img 
-                      src="/api/placeholder/150/100" 
-                      alt="Design 2" 
-                      className="rounded-md w-full h-20 object-cover"
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-3">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-3">
-                      <div className="flex -space-x-1">
-                        {[1, 2].map((i) => (
-                          <Avatar key={i} className="border-2 border-background w-6 h-6">
-                            <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-purple-600 text-white text-xs">
-                              {i}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MessageSquare className="h-3 w-3" />
-                        <span className="text-xs">12 comments</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Paperclip className="h-3 w-3" />
-                      <span className="text-xs">15 files</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Task Card 2 */}
-              <Card className="hover:shadow-md transition-shadow cursor-pointer border-green-200 dark:border-green-900">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <Badge className="text-xs bg-green-500">Completed</Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <MoreVertical className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
-                        <DropdownMenuItem>Move to...</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <CardTitle className="text-base font-semibold mt-2">
-                    Design System
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    It just needs to adapt the UI from what you did before
-                  </p>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-3">
-                      <div className="flex -space-x-1">
-                        {[1, 2, 3].map((i) => (
-                          <Avatar key={i} className="border-2 border-background w-6 h-6">
-                            <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-600 text-white text-xs">
-                              {i}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MessageSquare className="h-3 w-3" />
-                        <span className="text-xs">12 comments</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Paperclip className="h-3 w-3" />
-                      <span className="text-xs">15 files</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  ))}
+                </div>
+              </SortableContext>
             </div>
           </div>
-        </div>
+
+          <DragOverlay>
+            {activeTask ? (
+              <TaskCard
+                id={activeTask.id}
+                priority={activeTask.priority}
+                title={activeTask.title}
+                description={activeTask.description}
+              />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
     </DashboardLayout>
   );

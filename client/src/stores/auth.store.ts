@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { authApi } from '@/lib/api';
-import { IUserResponse, LoginRequest, SignupRequest } from '@/interfaces/api';
+import { IUserResponse, LoginRequest, SignupRequest, CreateTaskRequest, CreateUserRequest, CreateUserResponse } from '@/interfaces/api';
 import { getErrorMessage } from '@/utils/helpers.utils';
+import { ApiResponse } from '../types/index';
 
 interface AuthState {
     user: IUserResponse | null;
+    users: IUserResponse[];
     token: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;
@@ -27,6 +29,7 @@ export const useAuthStore = create<AuthStore>()(
     devtools(
         persist((set, get) => ({
             user: null,
+            users: [],
             token: null,
             isAuthenticated: false,
             isLoading: false,
@@ -61,6 +64,36 @@ export const useAuthStore = create<AuthStore>()(
                 catch(err: unknown) {
                     set({ isLoading: false, error: getErrorMessage(err) })
                     throw err;
+                }
+            },
+
+            getAllUsers: async () => {
+                set({ isLoading: true, error: null});
+                try{
+                    const response = (await authApi.getAllUsers()).data.data;
+                    set({users: response, isLoading: false})
+                }
+                catch(err){
+                    set({
+                        error: getErrorMessage(err),
+                        isLoading: false
+                    });
+                    return null
+                }
+            },
+
+            getUserById: async (id: string) => {
+                set({ isLoading: true, error: null});
+                try {
+                    const res = (await authApi.getUserById(id)).data.data;
+                    set({user: res, isLoading: false });
+                    return res;
+                }
+                catch ( err ) {
+                    set({
+                        error: getErrorMessage(err),
+                        isLoading: false
+                    })
                 }
             }
 

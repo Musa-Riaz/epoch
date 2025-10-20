@@ -11,7 +11,10 @@ import {
   Settings,
   Layers,
   ChevronUp,
-  User2
+  User2,
+  BarChart3,
+  FileText,
+  UserCog
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,8 +35,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuthStore } from "@/stores/auth.store";
+import { useMemo } from "react";
+import { LucideIcon } from "lucide-react";
 
-const sidebarLinks = [
+type SidebarLink = {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+};
+
+const sidebarLinksMember: SidebarLink[] = [
   {
     title: "Dashboard",
     href: "/member-dashboard",
@@ -61,8 +73,79 @@ const sidebarLinks = [
   },
 ];
 
+const sidebarLinksManager: SidebarLink[] = [
+  {
+    title: "Analytics",
+    href: "/manager-dashboard/analytics",
+    icon: BarChart3
+  },
+  {
+    title: "Projects",
+    href: "/manager-dashboard/projects",
+    icon: FolderKanban
+  },
+  {
+    title: "Tasks",
+    href: "/manager-dashboard/tasks",
+    icon: CheckSquare
+  },
+  {
+    title: "Members",
+    href: "/manager-dashboard/members",
+    icon: Users
+  },
+  {
+    title: "Reports",
+    href: "/manager-dashboard/reports",
+    icon: FileText
+  },
+];
+
+const sidebarLinksAdmin: SidebarLink[] = [
+  {
+    title: "Analytics",
+    href: "/admin-dashboard/analytics",
+    icon: BarChart3
+  },
+  {
+    title: "Projects",
+    href: "/admin-dashboard/projects",
+    icon: FolderKanban
+  },
+  {
+    title: "Tasks",
+    href: "/admin-dashboard/tasks",
+    icon: CheckSquare
+  },
+  {
+    title: "Members",
+    href: "/admin-dashboard/members",
+    icon: UserCog
+  },
+  {
+    title: "Settings",
+    href: "/admin-dashboard/settings",
+    icon: Settings
+  },
+];
+
 export function DashboardSidebar() {
+  const userRole = useAuthStore((state) => state.user?.role);
   const pathname = usePathname();
+
+  // Use useMemo to calculate links based on role
+  const links = useMemo(() => {
+    switch (userRole) {
+      case 'member':
+        return sidebarLinksMember;
+      case 'manager':
+        return sidebarLinksManager;
+      case 'admin':
+        return sidebarLinksAdmin;
+      default:
+        return sidebarLinksMember; // Default to member links
+    }
+  }, [userRole]);
 
   return (
     <Sidebar collapsible="icon">
@@ -88,7 +171,7 @@ export function DashboardSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sidebarLinks.map((link) => {
+              {links.map((link) => {
                 const isActive = pathname === link.href;
                 const Icon = link.icon;
                 
@@ -111,7 +194,7 @@ export function DashboardSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarSeparator  style={{width:'220px'}} />
+        <SidebarSeparator />
 
         <SidebarGroup>
           <SidebarGroupContent>
@@ -147,7 +230,9 @@ export function DashboardSidebar() {
                   </Avatar>
                   <div className="flex flex-col gap-0.5 leading-none">
                     <span className="font-semibold text-sm">Anima Agrawal</span>
-                    <span className="text-xs text-muted-foreground">Member</span>
+                    <span className="text-xs text-muted-foreground">
+                      {userRole || 'Member'}
+                    </span>
                   </div>
                   <ChevronUp className="ml-auto" />
                 </SidebarMenuButton>

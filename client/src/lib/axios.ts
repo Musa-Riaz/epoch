@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { ApiResponse } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8500/api';
 
@@ -16,11 +15,20 @@ export const api = axios.create({
 // request interceptor to add auth token
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('authToken');
-        if(token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        // Get token from Zustand persist storage
+        const authStorage = localStorage.getItem('auth-storage');
+        if (authStorage) {
+            try {
+                const { state } = JSON.parse(authStorage);
+                const token = state?.token;
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+            } catch (error) {
+                console.error('Error parsing auth storage:', error);
+            }
         }
-        return config
+        return config;
     },
      (error) => {
         return Promise.reject(error)

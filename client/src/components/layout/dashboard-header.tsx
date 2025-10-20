@@ -16,9 +16,11 @@ import { Badge } from "@/components/ui/badge";
 import { useTheme } from "next-themes";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import { useAuthStore } from "@/stores/auth.store";
 
 export function DashboardHeader() {
   const { theme, setTheme } = useTheme();
+  const user = useAuthStore((state) => state.user);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -114,22 +116,22 @@ export function DashboardHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2 px-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="" />
+                  <AvatarImage src={user?.profilePicture} />
                   <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
-                    AA
+                    {user?.firstName?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden md:flex flex-col items-start">
-                  <span className="text-sm font-medium">Anima Agrawal</span>
-                  <span className="text-xs text-muted-foreground">U.P, India</span>
+                  <span className="text-sm font-medium">{user?.firstName}</span>
+                  <span className="text-xs text-muted-foreground">{user?.email}</span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">Anima Agrawal</p>
-                  <p className="text-xs text-muted-foreground">anima@example.com</p>
+                  <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

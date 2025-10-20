@@ -9,26 +9,30 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities' 
 
 interface TaskCardProps {
-    id:number,
-    priority: string,
-    title:string,
-    description: string
+    id: string;
+    priority: string;
+    title: string;
+    description: string;
 }
 
+const TaskCard = ({id, priority, title, description}: TaskCardProps) => {
 
+    const {attributes, listeners, setNodeRef, transition, transform, isDragging} = useSortable({id})
 
-const TaskCard = ({id,priority, title , description, }: TaskCardProps) => {
-
-    const {attributes, listeners, setNodeRef, transition, transform, isOver} = useSortable({id})
-
-    const style= {
-    transition,
-    transform: CSS.Transform.toString(transform),
-    borderColor: isOver? 'green' : ''
-}
+    const style = {
+        transition,
+        transform: CSS.Transform.toString(transform),
+         opacity: isDragging ? 0.5 : 1,
+    }
 
   return (
-       <Card ref={setNodeRef} {...attributes} {...listeners} style={style} className="hover:shadow-md transition-shadow cursor-pointer">
+       <Card 
+         ref={setNodeRef} 
+         {...attributes} 
+         {...listeners} 
+         style={style} 
+         className="hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing"
+       >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <Badge variant="secondary" className="text-xs">{priority}</Badge>
@@ -41,7 +45,7 @@ const TaskCard = ({id,priority, title , description, }: TaskCardProps) => {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem>Edit</DropdownMenuItem>
                         <DropdownMenuItem>Delete</DropdownMenuItem>
-                        <DropdownMenuItem>Move to...</DropdownMenuItem>
+                        <DropdownMenuItem>Assign Task</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
