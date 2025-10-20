@@ -2,6 +2,15 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8500/api';
 
+// Function to get auth store (lazy loaded to avoid circular dependencies)
+const getAuthStore = () => {
+    if (typeof window !== 'undefined') {
+        // Dynamic import to avoid circular dependency
+        return import('@/stores/auth.store').then(module => module.useAuthStore);
+    }
+    return null;
+};
+
 // creating axios instance
 
 export const api = axios.create({
@@ -36,42 +45,43 @@ api.interceptors.request.use(
 )
 
 // Response interceptor to handle auth errors
-// api.interceptors.response.use(
-//     (response) => response,
-//     async (error) => {
-//         const originalRequest = error.config
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
 
-//         console.log('error', error)
+        // Handle 401 Unauthorized errors
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
 
-//         if (error.response?.status === 401 && !originalRequest._retry) {
-//             originalRequest._retry = true
+            try {
+                // Use auth store's logout function to clear state
+                const authStoreModule = await getAuthStore();
+                if (authStoreModule) {
+                    authStoreModule.getState().logout();
+                }
+            } catch (err) {
+                console.error('Error clearing auth state:', err);
+                // Fallback: clear localStorage directly
+                localStorage.removeItem('auth-storage');
+            }
+            
+            // Redirect to login page
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+            }
+        }
 
-//             try {
-//                 const refreshToken = localStorage.getItem('refreshToken')
-//                 console.log('refreshToken', refreshToken)
-//                 if (refreshToken) {
-//                     const response = await axios.post<ApiResponse<RefreshTokenResponse>>(`${API_BASE_URL}/auth/refresh`, {
-//                         refreshToken
-//                     })
+        // Handle 403 Forbidden errors
+        if (error.response?.status === 403) {
+            console.error('Access forbidden - insufficient permissions');
+        }
 
-//                     // Update access token in local storage
-//                     const { accessToken } = response.data.data
-//                     localStorage.setItem('token', accessToken)
+        // Handle 500 Server errors
+        if (error.response?.status >= 500) {
+            console.error('Server error occurred:', error.response?.data?.message || 'Internal server error');
+        }
 
-//                     originalRequest.headers.Authorization = `Bearer ${accessToken}`
-//                     return api(originalRequest)
-//                 }
-//                 else {
-//                     // useAuthStore.getState().resetState();
-//                     // TODO: instead of redirecting to login, we should show a message to the user to login again
-//                     window.location.href = '/login'
-//                 }
-//             } catch {
-//                 // useAuthStore.getState().resetState();
-//                 window.location.href = '/login'
-//             }
-//         }
-
-//         return Promise.reject(error)
-//     }
-// )
+        return Promise.reject(error);
+    }
+)

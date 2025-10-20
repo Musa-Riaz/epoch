@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { authApi } from '@/lib/api';
-import { IUserResponse, LoginRequest, SignupRequest, CreateTaskRequest, CreateUserRequest, CreateUserResponse } from '@/interfaces/api';
+import { IUserResponse, SignupRequest } from '@/interfaces/api';
 import { getErrorMessage } from '@/utils/helpers.utils';
-import { ApiResponse } from '../types/index';
+
 
 interface AuthState {
     user: IUserResponse | null;
@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthStore>()(
             signup: async (userData: SignupRequest) => {
                 set({isLoading: true, error: null});
                 try {
-                    const res = await authApi.signup(
+                         await authApi.signup(
                         userData.firstName,
                         userData.lastName,
                         userData.email,
@@ -95,6 +95,19 @@ export const useAuthStore = create<AuthStore>()(
                         isLoading: false
                     })
                 }
+            },
+
+            logout: () => {
+                set({
+                    user: null,
+                    users: [],
+                    token: null,
+                    isAuthenticated: false,
+                    isLoading: false,
+                    error: null
+                });
+                // Clear localStorage
+                localStorage.removeItem('auth-storage');
             }
 
         }),

@@ -15,12 +15,23 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useTheme } from "next-themes";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { useAuthStore } from "@/stores/auth.store";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export function DashboardHeader() {
   const { theme, setTheme } = useTheme();
+  const { logout } = useAuthStore()
   const user = useAuthStore((state) => state.user);
+  const router = useRouter(); 
+
+
+  const handleLogout =  () => {
+     logout();
+     toast.success("Logged out successfully");
+    router.push('/login');
+
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -139,7 +150,7 @@ export function DashboardHeader() {
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuItem>Team</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>

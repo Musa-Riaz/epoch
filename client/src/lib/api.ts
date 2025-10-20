@@ -37,8 +37,6 @@ export const authApi = {
       profilePicture
     }),
 
-  logout: async () => await api.post<ApiResponse<null>>("/auth/logout"),
-
   getUserById: async (id: string) =>
     await api.get<ApiResponse<IUserResponse>>(`/auth/user/${id}`),
 
