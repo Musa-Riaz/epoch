@@ -75,6 +75,8 @@ export async function login(req: Request, res: Response): Promise<void> {
             role: user.role
         })
 
+        
+
         return sendSuccess({
             res,
             data: {user: userObj, accessToken: token},
@@ -128,7 +130,7 @@ export async function getUserById(req: Request, res: Response) : Promise<void> {
         }
         const userObj = user.toObject();
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete (userObj as any).password;
+            delete (userObj as any).password;
 
         return sendSuccess({
             res,

@@ -8,7 +8,7 @@ export const signupSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   role: z.enum(['admin', 'manager', 'member']).optional(),
-  profilePicture: z.string().url().optional(),
+  // TODO: Add profile picture validation, currently it is not working
 });
 
 export const loginSchema = z.object({

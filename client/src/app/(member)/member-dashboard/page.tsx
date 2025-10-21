@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,19 +15,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { 
   Plus, 
-  MoreVertical, 
-  Calendar, 
-  MessageSquare, 
-  Paperclip,
   Filter,
   Share2,
   Grid3x3
 } from "lucide-react";
-import { closestCorners, DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { closestCorners, DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, useDroppable } from "@dnd-kit/core";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -37,16 +32,14 @@ import {Label} from '@/components/ui/label';
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea";
 import { DialogClose } from "@radix-ui/react-dialog";
 import { useTaskStore } from "@/stores/task.store";
 import { toast } from "react-hot-toast";
+
 type Task = {
     id: string;
     priority: "low" | "medium" | "high" ;
@@ -56,64 +49,61 @@ type Task = {
     media?: File 
 }
 
+// Droppable wrapper component
+const DroppableColumn = ({ id, children }: { id: string; children: React.ReactNode }) => {
+  const { setNodeRef } = useDroppable({ id });
+  
+  return (
+    <div ref={setNodeRef} className="space-y-3 min-h-[200px]">
+      {children}
+    </div>
+  );
+};
+
+
 const MemberDashboard = () => {
-    const [tasks, setTasks] = useState<Task[]>([
-        {
-            id: '1',
-            priority: 'low',
-            title: 'Brainstorming',
-            description: 'Brainstorming brings team members diverse experience into play',
-            status: 'todo'
-        },
-        {
-            id: '2',
-            priority: 'high',
-            title: 'Research',
-            description: 'User research helps you create an optimal product for users',
-            status: 'todo'
-        },
-        {
-            id: '3',
-            priority: 'high',
-            title: 'Wireframes',
-            description: 'Low fidelity wireframes include the most basic content',
-            status: 'todo'
-        },
-        {
-            id: '4',
-            priority: 'low',
-            title: 'Onboarding Illustrations',
-            description: 'Create beautiful onboarding illustrations',
-            status: 'inProgress'
-        },
-        {
-            id: '5',
-            priority: 'low',
-            title: 'Moodboard',
-            description: 'Create a moodboard for the project',
-            status: 'inProgress'
-        },
-        {
-            id: '6',
-            priority: 'high',
-            title: 'Mobile App Design',
-            description: 'Design the mobile app interface',
-            status: 'done'
-        },
-        {
-            id: '7',
-            priority: 'high',
-            title: 'Design System',
-            description: 'It just needs to adapt the UI from what you did before',
-            status: 'done'
-        },
-    ]);
+
+  
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const { getTasks } = useTaskStore();
+
+    // calling useEffect, fetching tasks from getTasks, and setting tasks
+    // TODO: fetch the tasks according to the specific project id
+    useEffect(() => {
+  async function fetchTasks(){
+
+        try{
+          const res = await getTasks();
+          if(res){
+            // Map ITaskResponse[] to Task[] format
+            const mappedTasks: Task[] = res.map((taskResponse) => {
+              const task = taskResponse;
+              console.log("this is the task", task);
+
+              return {
+                id: String(task._id),
+                priority: task.priority,
+                title: task.title,
+                description: task.description || '',
+                status: task.status === 'in-progress' ? 'inProgress' : task.status as 'todo' | 'done',
+              };
+            });
+            setTasks(mappedTasks);
+          }
+        }
+        catch(err){
+          console.log(err)
+          toast.error('Failed to fetch tasks');
+        }
+      }
+      fetchTasks();
+    }, [getTasks])
 
     const [activeTask, setActiveTask] = useState<Task | null>(null);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
-    const [media, setMedia] = useState<File | null>(null);
+    const [media] = useState<File | null>(null);
 
     const { createTask } = useTaskStore();
 
@@ -127,20 +117,20 @@ const MemberDashboard = () => {
     );
 
     // Get tasks by status
-    const todoTasks = tasks.filter(task => task.status === 'todo');
-    const inProgressTasks = tasks.filter(task => task.status === 'inProgress');
-    const doneTasks = tasks.filter(task => task.status === 'done');
+    const todoTasks = tasks?.filter(task => task?.status === 'todo');
+    const inProgressTasks = tasks?.filter(task => task.status === 'inProgress');
+    const doneTasks = tasks?.filter(task => task.status === 'done');
 
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
-        const activeTask = tasks.find(task => task.id === active.id);
+        const activeTask = tasks?.find(task => task.id === active.id);
         setActiveTask(activeTask || null);
     };
 
     const handleDragOver = (event: DragOverEvent) => {
         const { active, over } = event;
         
-        if (!over) return;
+        if (!over || !tasks) return;
 
         const activeId = active.id;
         const overId = over.id;
@@ -157,7 +147,9 @@ const MemberDashboard = () => {
         
         if (isOverColumn) {
             setTasks(tasks => {
+                if (!tasks) return tasks;
                 const activeIndex = tasks.findIndex(t => t.id === activeId);
+                if (activeIndex === -1) return tasks;
                 const newTasks = [...tasks];
                 newTasks[activeIndex] = { 
                     ...newTasks[activeIndex], 
@@ -171,8 +163,11 @@ const MemberDashboard = () => {
         // Handle dropping over another task
         if (overTask && activeTask.status !== overTask.status) {
             setTasks(tasks => {
+                if (!tasks) return tasks;
                 const activeIndex = tasks.findIndex(t => t.id === activeId);
                 const overIndex = tasks.findIndex(t => t.id === overId);
+                
+                if (activeIndex === -1 || overIndex === -1) return tasks;
                 
                 const newTasks = [...tasks];
                 newTasks[activeIndex] = { 
@@ -195,7 +190,7 @@ const MemberDashboard = () => {
         
         setActiveTask(null);
 
-        if (!over) return;
+        if (!over || !tasks) return;
 
         const activeId = active.id;
         const overId = over.id;
@@ -203,6 +198,7 @@ const MemberDashboard = () => {
         if (activeId === overId) return;
 
         setTasks(tasks => {
+            if (!tasks) return tasks;
             const activeTask = tasks.find(t => t.id === activeId);
             const overTask = tasks.find(t => t.id === overId);
 
@@ -210,6 +206,8 @@ const MemberDashboard = () => {
 
             const activeIndex = tasks.findIndex(t => t.id === activeId);
             const overIndex = tasks.findIndex(t => t.id === overId);
+
+            if (activeIndex === -1 || overIndex === -1) return tasks;
 
             // If dropping in the same column, just reorder
             if (activeTask.status === overTask?.status) {
@@ -240,7 +238,8 @@ const MemberDashboard = () => {
        }
        catch (err: unknown) {
       if (err instanceof Error) {
-        const responseError = (err as any).response?.data?.error;
+        const axiosError = err as { response?: { data?: { error?: string } } };
+        const responseError = axiosError.response?.data?.error;
         toast.error(responseError ?? err.message);
       } else {
         toast.error(String(err));
@@ -326,7 +325,7 @@ const MemberDashboard = () => {
                        <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-blue-500" />
                   <h3 className="font-semibold">To Do</h3>
-                  <Badge variant="secondary" className="rounded-full">{todoTasks.length}</Badge>
+                  <Badge variant="secondary" className="rounded-full">{todoTasks?.length}</Badge>
                 </div>
                   <Dialog>
                     <DialogTrigger asChild>
@@ -349,7 +348,7 @@ const MemberDashboard = () => {
                         </div>
                         <div className="flex flex-col gap-2">
                           <Label htmlFor="task-priority">Task Priority</Label>
-                          <Select  defaultValue={priority} onValueChange={(value) => setPriority(value)}>
+                          <Select  defaultValue={priority} onValueChange={(value) => setPriority(value as 'low' | 'medium' | 'high')}>
                             <SelectTrigger className="w-full">Select Priority</SelectTrigger>
                             <SelectContent>
                               <SelectItem value="low">Low</SelectItem>
@@ -379,9 +378,9 @@ const MemberDashboard = () => {
                 <div className="w-full h-2 rounded-full mt-4 bg-blue-500" />
               </div>
 
-              <SortableContext items={todoTasks.map(t => t.id)}>
-                <div className="space-y-3 min-h-[200px]">
-                  {todoTasks.map((task) => (
+              <SortableContext items={todoTasks?.map(t => t.id) || []}>
+                <DroppableColumn id="todo">
+                  {todoTasks?.map((task) => (
                     <TaskCard
                       key={task.id}
                       id={task.id}
@@ -390,7 +389,7 @@ const MemberDashboard = () => {
                       description={task.description}
                     />
                   ))}
-                </div>
+                </DroppableColumn>
               </SortableContext>
             </div>
 
@@ -401,7 +400,7 @@ const MemberDashboard = () => {
                        <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-yellow-500" />
                   <h3 className="font-semibold">In Progress</h3>
-                  <Badge variant="secondary" className="rounded-full">{inProgressTasks.length}</Badge>
+                  <Badge variant="secondary" className="rounded-full">{inProgressTasks?.length}</Badge>
                 </div>
                                 <Dialog>
                     <DialogTrigger asChild>
@@ -424,7 +423,7 @@ const MemberDashboard = () => {
                         </div>
                         <div className="flex flex-col gap-2">
                           <Label htmlFor="task-priority">Task Priority</Label>
-                          <Select  defaultValue={priority} onValueChange={(value) => setPriority(value)}>
+                          <Select  defaultValue={priority} onValueChange={(value) => setPriority(value as 'low' | 'medium' | 'high')}>
                             <SelectTrigger className="w-full">Select Priority</SelectTrigger>
                             <SelectContent>
                               <SelectItem value="low">Low</SelectItem>
@@ -454,9 +453,9 @@ const MemberDashboard = () => {
                 <div className="w-full h-2 rounded-full mt-4 bg-yellow-500" />
               </div>
 
-              <SortableContext items={inProgressTasks.map(t => t.id)}>
-                <div className="space-y-3 min-h-[200px]">
-                  {inProgressTasks.map((task) => (
+              <SortableContext items={inProgressTasks?.map(t => t.id) || []}>
+                <DroppableColumn id="inProgress">
+                  {inProgressTasks?.map((task) => (
                     <TaskCard
                       key={task.id}
                       id={task.id}
@@ -465,7 +464,7 @@ const MemberDashboard = () => {
                       description={task.description}
                     />
                   ))}
-                </div>
+                </DroppableColumn>
               </SortableContext>
             </div>
 
@@ -476,7 +475,7 @@ const MemberDashboard = () => {
                        <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500" />
                   <h3 className="font-semibold">Done</h3>
-                  <Badge variant="secondary" className="rounded-full">{doneTasks.length}</Badge>
+                  <Badge variant="secondary" className="rounded-full">{doneTasks?.length}</Badge>
                 </div>
                                   <Dialog>
                     <DialogTrigger asChild>
@@ -499,7 +498,7 @@ const MemberDashboard = () => {
                         </div>
                         <div className="flex flex-col gap-2">
                           <Label htmlFor="task-priority">Task Priority</Label>
-                          <Select  defaultValue={priority} onValueChange={(value) => setPriority(value)}>
+                          <Select  defaultValue={priority} onValueChange={(value) => setPriority(value as 'low' | 'medium' | 'high')}>
                             <SelectTrigger className="w-full">Select Priority</SelectTrigger>
                             <SelectContent>
                               <SelectItem value="low">Low</SelectItem>
@@ -529,9 +528,9 @@ const MemberDashboard = () => {
                 <div className="w-full h-2 rounded-full mt-4 bg-green-500" />
               </div>
 
-              <SortableContext items={doneTasks.map(t => t.id)}>
-                <div className="space-y-3 min-h-[200px]">
-                  {doneTasks.map((task) => (
+              <SortableContext items={doneTasks?.map(t => t.id) || []}>
+                <DroppableColumn id="done">
+                  {doneTasks?.map((task) => (
                     <TaskCard
                       key={task.id}
                       id={task.id}
@@ -540,7 +539,7 @@ const MemberDashboard = () => {
                       description={task.description}
                     />
                   ))}
-                </div>
+                </DroppableColumn>
               </SortableContext>
             </div>
           </div>

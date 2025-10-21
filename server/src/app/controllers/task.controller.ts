@@ -27,6 +27,18 @@ export async function getTasks(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function getTask(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const task = await Task.findById(id);
+    if (!task) return sendError({ res, error: 'Task not found', status: 404 });
+    return sendSuccess({ res, data: task, status: 200, message: 'Task fetched' });
+  }
+  catch(err){
+    return sendError({ res, error: 'Failed to fetch task', details: err as any, status: 500 });
+  }
+}
+
 export async function updateTask(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
@@ -50,5 +62,17 @@ export async function deleteTask(req: Request, res: Response): Promise<void> {
     return sendSuccess({ res, data: task, status: 200, message: 'Task deleted' });
   } catch (err) {
     return sendError({ res, error: 'Failed to delete task', details: err as any, status: 500 });
+  }
+}
+
+
+//  TODO: add the controller that will allow members to assign tasks to the members
+
+export async function assignTask(req: Request, res: Response) {
+  try{
+
+  }
+  catch(err){
+    
   }
 }

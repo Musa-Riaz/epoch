@@ -2,6 +2,10 @@ import { IProject } from '../../../server/src/infrastructure/database/models/pro
 import { ITeam } from '../../../server/src/infrastructure/database/models/team.model';
 import { IComment } from '../../../server/src/infrastructure/database/models/comment.model';
 import { ITask } from '../../../server/src/infrastructure/database/models/task.model';
+
+// Re-export server interfaces
+export type { ITask, IProject, ITeam, IComment };
+
 export interface IUserResponse {
     _id: string;
     firstName: string;
@@ -12,6 +16,21 @@ export interface IUserResponse {
     createdAt: string;
     updatedAt: string;
 }
+
+// export interface ITask {
+//   _id: string;
+//     title: string;
+//     description?: string;
+//     projectId: string;
+//     assignedTo?: string;
+//     status: 'todo' | 'in-progress' | 'done';
+//     priority: 'low' | 'medium' | 'high';
+//     media?: string[];
+//     dueDate?: Date;
+//     createdAt: Date;
+//     updatedAt: Date;  
+
+// }
 
 export interface CreateUserRequest {
     firstName: string;

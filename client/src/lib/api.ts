@@ -5,7 +5,7 @@ import {
   IUserResponse,
   ICommentResponse,
   IProjectResponse,
-  ITaskResponse,
+  ITask,
   UpdateTaskRequest,
   ITeamResponse,
   LoginResponse,
@@ -46,15 +46,15 @@ export const authApi = {
 
 export const taskApi = {
   // Define task-related API methods here
-  getTasks: async () => await api.get<ApiResponse<ITaskResponse[]>>("/tasks"),
+  getTasks: async () => await api.get<ApiResponse<ITask[]>>("/tasks"),
 
-  getTask: async (id: string) => await api.get<ApiResponse<ITaskResponse>>(`/tasks/${id}`),
+  getTask: async (id: string) => await api.get<ApiResponse<ITask>>(`/tasks/${id}`),
 
   createTask: async (taskData: CreateTaskRequest) =>
-    await api.post<ApiResponse<ITaskResponse>>("/tasks", taskData),
+    await api.post<ApiResponse<ITask>>("/tasks", taskData),
 
   updateTask: async (id: string, taskData: UpdateTaskRequest) =>
-    await api.patch<ApiResponse<ITaskResponse>>(`/tasks/${id}`, taskData),
+    await api.patch<ApiResponse<ITask>>(`/tasks/${id}`, taskData),
   deleteTask: async (id: string) =>
     await api.delete<ApiResponse<null>>(`/tasks/${id}`),
 };

@@ -1,21 +1,22 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { taskApi } from "@/lib/api";
-import { ITaskResponse, CreateTaskRequest, UpdateTaskRequest } from "@/interfaces/api";
+import { CreateTaskRequest, UpdateTaskRequest } from "@/interfaces/api";
+import { ITask } from "@/interfaces/api";
 import { getErrorMessage } from "@/utils/helpers.utils";
 
 interface TaskState {
-    task: ITaskResponse | null;
-    tasks: ITaskResponse[];
+    task: ITask | null;
+    tasks: ITask[];
     isLoading: boolean;
     error: string | null;
 }
 
 interface TaskActions {
-    createTask: (taskData: CreateTaskRequest) => Promise<ITaskResponse | null>;
-    updateTask: (id: string, taskData: UpdateTaskRequest) => Promise<ITaskResponse | null>;
+    createTask: (taskData: CreateTaskRequest) => Promise<ITask | null>;
+    updateTask: (id: string, taskData: UpdateTaskRequest) => Promise<ITask | null>;
     deleteTask: (id: string) => Promise<boolean>;
-    getTasks: () => Promise<ITaskResponse[] | null>;
+    getTasks: () => Promise<ITask[] | null>;
 }
 
 export const useTaskStore = create<TaskState & TaskActions>()(
@@ -51,7 +52,7 @@ export const useTaskStore = create<TaskState & TaskActions>()(
                 deleteTask: async (id) => {
                     set({ isLoading: true });
                     try {
-                        (await taskApi.deleteTask(id)).data.data;
+                        await taskApi.deleteTask(id);
                         set({ isLoading: false });
                         return true;
                     } catch (error) {
