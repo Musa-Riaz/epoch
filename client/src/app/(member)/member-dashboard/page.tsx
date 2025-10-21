@@ -78,7 +78,6 @@ const MemberDashboard = () => {
             // Map ITaskResponse[] to Task[] format
             const mappedTasks: Task[] = res.map((taskResponse) => {
               const task = taskResponse;
-              console.log("this is the task", task);
 
               return {
                 id: String(task._id),
@@ -97,7 +96,7 @@ const MemberDashboard = () => {
         }
       }
       fetchTasks();
-    }, [getTasks])
+    }, [getTasks]);
 
     const [activeTask, setActiveTask] = useState<Task | null>(null);
     const [title, setTitle] = useState('');
@@ -105,7 +104,7 @@ const MemberDashboard = () => {
     const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
     const [media] = useState<File | null>(null);
 
-    const { createTask } = useTaskStore();
+    const { createTask, updateTask } = useTaskStore();
 
     // Configure sensors for better drag experience
     const sensors = useSensors(
@@ -142,26 +141,9 @@ const MemberDashboard = () => {
 
         if (!activeTask) return;
 
-        // Handle dropping over a column (droppable zone)
-        const isOverColumn = ['todo', 'inProgress', 'done'].includes(overId as string);
-        
-        if (isOverColumn) {
-            setTasks(tasks => {
-                if (!tasks) return tasks;
-                const activeIndex = tasks.findIndex(t => t.id === activeId);
-                if (activeIndex === -1) return tasks;
-                const newTasks = [...tasks];
-                newTasks[activeIndex] = { 
-                    ...newTasks[activeIndex], 
-                    status: overId as 'todo' | 'inProgress' | 'done' 
-                };
-                return newTasks;
-            });
-            return;
-        }
-
-        // Handle dropping over another task
-        if (overTask && activeTask.status !== overTask.status) {
+        // Only handle reordering within the same column, not status changes
+        // Status changes will be handled in handleDragEnd
+        if (overTask && activeTask.status === overTask.status) {
             setTasks(tasks => {
                 if (!tasks) return tasks;
                 const activeIndex = tasks.findIndex(t => t.id === activeId);
@@ -170,22 +152,15 @@ const MemberDashboard = () => {
                 if (activeIndex === -1 || overIndex === -1) return tasks;
                 
                 const newTasks = [...tasks];
-                newTasks[activeIndex] = { 
-                    ...newTasks[activeIndex], 
-                    status: overTask.status 
-                };
-
-                // Reorder within the new column
-                const updatedTasks = [...newTasks];
-                const [movedTask] = updatedTasks.splice(activeIndex, 1);
-                updatedTasks.splice(overIndex, 0, movedTask);
+                const [movedTask] = newTasks.splice(activeIndex, 1);
+                newTasks.splice(overIndex, 0, movedTask);
                 
-                return updatedTasks;
+                return newTasks;
             });
         }
     };
 
-    const handleDragEnd = (event: DragEndEvent) => {
+    const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         
         setActiveTask(null);
@@ -197,28 +172,87 @@ const MemberDashboard = () => {
 
         if (activeId === overId) return;
 
-        setTasks(tasks => {
-            if (!tasks) return tasks;
-            const activeTask = tasks.find(t => t.id === activeId);
+        const activeTask = tasks.find(t => t.id === activeId);
+        if (!activeTask) return;
+
+        // Determine the new status
+        let newStatus: 'todo' | 'inProgress' | 'done' | null = null;
+        
+        // Check if dropped over a column
+        const isOverColumn = ['todo', 'inProgress', 'done'].includes(overId as string);
+        if (isOverColumn) {
+            newStatus = overId as 'todo' | 'inProgress' | 'done';
+        } else {
+            // Dropped over another task
             const overTask = tasks.find(t => t.id === overId);
-
-            if (!activeTask) return tasks;
-
-            const activeIndex = tasks.findIndex(t => t.id === activeId);
-            const overIndex = tasks.findIndex(t => t.id === overId);
-
-            if (activeIndex === -1 || overIndex === -1) return tasks;
-
-            // If dropping in the same column, just reorder
-            if (activeTask.status === overTask?.status) {
-                const newTasks = [...tasks];
-                const [movedTask] = newTasks.splice(activeIndex, 1);
-                newTasks.splice(overIndex, 0, movedTask);
-                return newTasks;
+            if (overTask && activeTask.status !== overTask.status) {
+                newStatus = overTask.status;
             }
+        }
 
-            return tasks;
-        });
+        
+
+        // If status changed, update the database
+        if (newStatus && newStatus !== activeTask.status) {
+            try {
+                // Convert frontend status to backend status
+                const backendStatus = newStatus === 'inProgress' ? 'in-progress' : newStatus;
+                
+                console.log('Updating task status:', {
+                    taskId: activeId,
+                    oldStatus: activeTask.status,
+                    newStatus: newStatus,
+                    backendStatus: backendStatus
+                });
+                
+                // Update in database
+                const result = await updateTask(String(activeId), { status: backendStatus });
+                console.log('Update result:', result);
+                
+                // Update local state
+                setTasks(tasks => {
+                    if (!tasks) return tasks;
+                    const activeIndex = tasks.findIndex(t => t.id === activeId);
+                    if (activeIndex === -1) return tasks;
+                    
+                    const newTasks = [...tasks];
+                    newTasks[activeIndex] = {
+                        ...newTasks[activeIndex],
+                        status: newStatus as 'todo' | 'inProgress' | 'done'
+                    };
+                    return newTasks;
+                });
+                
+                toast.success("Task status updated");
+            } catch (error) {
+                toast.error("Failed to update task status");
+                console.error('Update error:', error);
+            }
+        } else {
+            // Just reordering within the same column
+            setTasks(tasks => {
+                if (!tasks) return tasks;
+                const activeTask = tasks.find(t => t.id === activeId);
+                const overTask = tasks.find(t => t.id === overId);
+
+                if (!activeTask) return tasks;
+
+                const activeIndex = tasks.findIndex(t => t.id === activeId);
+                const overIndex = tasks.findIndex(t => t.id === overId);
+
+                if (activeIndex === -1 || overIndex === -1) return tasks;
+
+                // If dropping in the same column, just reorder
+                if (activeTask.status === overTask?.status) {
+                    const newTasks = [...tasks];
+                    const [movedTask] = newTasks.splice(activeIndex, 1);
+                    newTasks.splice(overIndex, 0, movedTask);
+                    return newTasks;
+                }
+
+                return tasks;
+            });
+        }
     };
 
 
@@ -233,6 +267,21 @@ const MemberDashboard = () => {
           media,
         })
         if(res){
+          // Add the new task to local state immediately
+          const newTask: Task = {
+            id: String(res._id),
+            priority: res.priority,
+            title: res.title,
+            description: res.description || '',
+            status: res.status === 'in-progress' ? 'inProgress' : res.status as 'todo' | 'done',
+          };
+          setTasks(prevTasks => [...prevTasks, newTask]);
+          
+          // Clear form fields
+          setTitle('');
+          setDescription('');
+          setPriority('medium');
+          
           toast.success("Task created successfully")
         }
        }
