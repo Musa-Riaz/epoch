@@ -29,80 +29,38 @@ import {
   Circle
 } from "lucide-react";
 
-// Mock data
-const mockTasks = [
-  {
-    id: 1,
-    title: "Implement user authentication",
-    description: "Add JWT-based authentication with refresh tokens",
-    status: "in-progress",
-    priority: "high",
-    dueDate: "2025-10-25",
-    assignedTo: "Emily Rodriguez",
-    project: "E-Commerce Platform"
-  },
-  {
-    id: 2,
-    title: "Design product listing page",
-    description: "Create responsive product grid with filters",
-    status: "todo",
-    priority: "high",
-    dueDate: "2025-10-28",
-    assignedTo: "Tom Anderson",
-    project: "E-Commerce Platform"
-  },
-  {
-    id: 3,
-    title: "Setup database schema",
-    description: "Design and implement MongoDB collections",
-    status: "completed",
-    priority: "high",
-    dueDate: "2025-10-20",
-    assignedTo: "Emily Rodriguez",
-    project: "E-Commerce Platform"
-  },
-  {
-    id: 4,
-    title: "Create mobile mockups",
-    description: "Design high-fidelity mockups for mobile app",
-    status: "in-progress",
-    priority: "medium",
-    dueDate: "2025-11-05",
-    assignedTo: "Jessica Martinez",
-    project: "Mobile App Redesign"
-  },
-  {
-    id: 5,
-    title: "Performance optimization",
-    description: "Optimize database queries and API response times",
-    status: "in-progress",
-    priority: "medium",
-    dueDate: "2025-10-30",
-    assignedTo: "Tom Anderson",
-    project: "E-Commerce Platform"
-  }
-];
-
 export default function ManagerTasks() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [selectedProject, setSelectedProject] = useState<string>("all");
 
-  const { getTasksByProject } = useTaskStore();
+  const { getTasksByProject, getTasks, tasks } = useTaskStore();
   const { getProjectsByManager, projects } = useProjectStore();
   const { user } = useAuthStore();
 
   useEffect(() => {
-    // Fetch projects and tasks for the manager
-    const fetchProjectsAndTasks = async () => {
+    // Fetch projects for the manager
+    const fetchProjects = async () => {
       if(user?._id){
          await getProjectsByManager(user._id);
-         
       }
     }
-    fetchProjectsAndTasks();
-  }, [user?._id, getProjectsByManager])
+    fetchProjects();
+  }, [user?._id, getProjectsByManager]);
+
+  // Fetch tasks when project selection changes
+  useEffect(() => {
+    const fetchTasks = async () => {
+      if (selectedProject === "all") {
+        await getTasks();
+      } else if (selectedProject && selectedProject !== "all") {
+        await getTasksByProject(selectedProject);
+      }
+    };
+    fetchTasks();
+  }, [selectedProject, getTasksByProject, getTasks])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -143,22 +101,24 @@ export default function ManagerTasks() {
     }
   };
 
-  const filteredTasks = mockTasks.filter(task => {
+  const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = selectedTab === "all" || task.status === selectedTab;
     const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter;
-    const matchesAssignee = assigneeFilter === "all" || task.assignedTo === assigneeFilter;
+    // Note: assignedTo is an ObjectId, will need to be populated from backend
+    const matchesAssignee = assigneeFilter === "all";
     return matchesSearch && matchesTab && matchesPriority && matchesAssignee;
   });
 
   const stats = {
-    total: mockTasks.length,
-    todo: mockTasks.filter(t => t.status === "todo").length,
-    inProgress: mockTasks.filter(t => t.status === "in-progress").length,
-    completed: mockTasks.filter(t => t.status === "completed").length
+    total: tasks.length,
+    todo: tasks.filter(t => t.status === "todo").length,
+    inProgress: tasks.filter(t => t.status === "in-progress").length,
+    done: tasks.filter(t => t.status === "done").length
   };
 
-  const assignees = Array.from(new Set(mockTasks.map(t => t.assignedTo)));
+  // Note: assignedTo is ObjectId, will need backend to populate user data
+  const assignees: string[] = [];
 
   return (
     <div className=" space-y-6">
@@ -175,7 +135,7 @@ export default function ManagerTasks() {
           <Plus className="w-4 h-4" />
           Create Task
         </Button>
-        <Select>
+        <Select value={selectedProject} onValueChange={setSelectedProject}>
           <SelectTrigger className="">
             <SelectValue placeholder="Filter by Project" />
           </SelectTrigger>
@@ -231,11 +191,11 @@ export default function ManagerTasks() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Completed
+              Done
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">{stats.completed}</div>
+            <div className="text-2xl font-bold text-green-500">{stats.done}</div>
           </CardContent>
         </Card>
       </div>
@@ -283,7 +243,7 @@ export default function ManagerTasks() {
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="todo">To Do</TabsTrigger>
           <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="done">Done</TabsTrigger>
         </TabsList>
 
         <TabsContent value={selectedTab} className="mt-6 space-y-4">
@@ -313,16 +273,18 @@ export default function ManagerTasks() {
                     <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <CheckSquare className="w-4 h-4" />
-                        <span>{task.project}</span>
+                        <span>Project ID: {String(task.projectId)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4" />
-                        <span>{task.assignedTo}</span>
+                        <span>{task.assignedTo ? String(task.assignedTo) : 'Unassigned'}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>Due: {new Date(task.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}</span>
-                      </div>
+                      {task.dueDate && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          <span>Due: {new Date(task.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex gap-2 mt-4">
@@ -341,7 +303,9 @@ export default function ManagerTasks() {
               <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No tasks found</h3>
               <p className="text-muted-foreground">
-                Try adjusting your filters
+                {selectedProject !== "all" 
+                  ? "No tasks for this project. Create a new task or select a different project." 
+                  : "Try adjusting your filters or create a new task."}
               </p>
             </div>
           )}
