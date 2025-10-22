@@ -143,7 +143,7 @@ export default function ManagerTasks() {
   const assignees = Array.from(new Set(mockTasks.map(t => t.assignedTo)));
 
   return (
-    <div className="p-8 space-y-6">
+    <div className=" space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

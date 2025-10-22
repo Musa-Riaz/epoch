@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuthStore } from "@/stores/auth.store";
 import {
   BarChart3,
   Calendar,
@@ -24,15 +25,32 @@ import {
 
 const ManagerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const { getManagerAnalytics, user } = useAuthStore();
+
+
+  interface ManagerAnalytics {
+    totalProjects: number;
+    totalMembers: number;
+  }
+
+  const [stats, setStats] = React.useState<ManagerAnalytics | null>(null);
+
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      if(user?.role === 'manager' && user?._id) {
+        const analytics = await getManagerAnalytics(user._id);
+        console.log('these are the analytics', analytics);
+        // Update state or perform actions with the analytics data
+        setStats(analytics);
+      }
+    }
+    fetchAnalytics();
+  }, [user, getManagerAnalytics]);
+
+  //TODO: currently, for stats I am only getting the total number of projects. Need to expand this to get other stats as well.
 
   // Mock data - replace with actual API calls
-  const stats = {
-    totalProjects: 12,
-    activeProjects: 8,
-    completedProjects: 4,
-    pendingTasks: 34,
-    upcomingDeadlines: 5,
-  };
 
   const projects = [
     {
@@ -143,9 +161,9 @@ const ManagerDashboard = () => {
               <FolderKanban className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalProjects}</div>
+              <div className="text-2xl font-bold">{stats?.totalProjects}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.activeProjects} active
+                 active
               </p>
             </CardContent>
           </Card>
@@ -156,9 +174,9 @@ const ManagerDashboard = () => {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeProjects}</div>
+              <div className="text-2xl font-bold">{}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.completedProjects} completed
+                {} completed
               </p>
             </CardContent>
           </Card>
@@ -169,7 +187,7 @@ const ManagerDashboard = () => {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingTasks}</div>
+              <div className="text-2xl font-bold">{}</div>
               <p className="text-xs text-muted-foreground">Across all projects</p>
             </CardContent>
           </Card>
@@ -180,7 +198,7 @@ const ManagerDashboard = () => {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.upcomingDeadlines}</div>
+              <div className="text-2xl font-bold">{}</div>
               <p className="text-xs text-muted-foreground">Next 7 days</p>
             </CardContent>
           </Card>
@@ -191,7 +209,7 @@ const ManagerDashboard = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{members.length}</div>
+              <div className="text-2xl font-bold">{stats?.totalMembers}</div>
               <p className="text-xs text-muted-foreground">Active members</p>
             </CardContent>
           </Card>

@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import {signup, login, getProfile, getAllUsers, getUserById} from '../controllers/auth.controller';
+import {signup, login, getProfile, getAllUsers, getUserById, getManagerAnalytics} from '../controllers/auth.controller';
 import { authMiddleware, requireRole } from '../middlewares/authMiddleware';
 import { validateRequest, signupSchema, loginSchema } from '../validators/schemas';
 
@@ -12,5 +12,8 @@ router.get('/profile', getProfile);
 // Admin routes
 router.get('/users', authMiddleware, requireRole(['admin']), getAllUsers);
 router.get('/user/:userId', authMiddleware, requireRole(['admin']), getUserById);
+
+// Manager routes
+router.get('/manager/analytics/:id', authMiddleware, requireRole(['manager']), getManagerAnalytics)
 
 export default router;

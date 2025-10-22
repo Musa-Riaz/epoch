@@ -3,6 +3,7 @@ import { sendSuccess, sendError } from '../utils/api';
 import {IUser, User} from '../../infrastructure/database/models/user.model';
 import { hashPassword, comparePassword } from '../utils/hash.util';
 import { issueToken } from '../utils/token.util';
+import Project from '../../infrastructure/database/models/project.model';
 
 
 export async function signup(req: Request, res: Response): Promise<void>{
@@ -159,5 +160,49 @@ export async function getAllUsers(req: Request, res: Response) : Promise<void> {
     }
     catch(err){
         return sendError({res, error: 'Failed to get users', details: err as any, status: 500});
+    }
+}
+
+// Get analytics of a particular manager
+export async function getManagerAnalytics(req: Request, res: Response) : Promise<void>{
+  try{
+
+    const managerId = req.params.id; // Get the id from params
+    const manager = await User.findById(managerId);
+    if(!manager || manager.role !== 'manager'){
+        return sendError({ res, error: 'Manager not found', status: 404 });
+    } 
+    // get all projects managed by this manager
+    const projects = await Project.find({ owner: managerId });
+    console.log(projects)
+    const totalMembers = projects.reduce((sum, project) => sum + (project.team?.length || 0), 0);
+    
+    return sendSuccess({ 
+      res, 
+      data: { 
+        totalProjects: projects.length, 
+        totalMembers: totalMembers,
+        projects: projects.map(p => ({
+          ...p.toObject?.() || p,
+          teamSize: p.team?.length || 0
+        }))
+      }, 
+      status: 200, 
+      message: 'Projects fetched successfully' 
+    });
+  }
+  catch(err){
+    return sendError({ res, error: 'Failed to fetch projects by manager', details: err as any, status: 500 });
+  }
+}
+
+
+// method through which a manager will assign tasks to a member
+export async function assignTask(req: Request, res: Response): Promise<void> {
+    try {
+
+    }
+    catch(err){
+        return sendError({ res, error: 'Failed to assign task', details: err as any, status: 500 });
     }
 }

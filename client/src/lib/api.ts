@@ -10,6 +10,7 @@ import {
   ITeamResponse,
   LoginResponse,
   SignupResponse,
+  ManagerAnalyticsResponse
 } from "@/interfaces/api";
 import { profile } from "console";
 
@@ -42,6 +43,8 @@ export const authApi = {
 
   getAllUsers: async () =>
     await api.get<ApiResponse<IUserResponse[]>>("/auth/users"),
+
+  getManagerAnalytics: async (id: string) => await api.get<ApiResponse<ManagerAnalyticsResponse>>(`/auth/manager/analytics/${id}`),
 };
 
 export const taskApi = {

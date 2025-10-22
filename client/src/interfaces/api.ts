@@ -103,6 +103,11 @@ export interface IProjectResponse {
 
 }
 
+export interface ManagerAnalyticsResponse {
+  totalProjects: number;
+  totalMembers: number;
+}
+
 export interface ITeamResponse {
   _id: string;
   name: string;

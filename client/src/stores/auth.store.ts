@@ -21,6 +21,7 @@ interface AuthActions {
     setUser: (user: IUserResponse) => void;
     getUserById: (id: string) => Promise<IUserResponse | null>;
     getAllUsers: () => Promise<IUserResponse[]>;
+    getManagerAnalytics: (id: string) => Promise<{ totalProjects: number; totalMembers: number } | null>;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -108,6 +109,21 @@ export const useAuthStore = create<AuthStore>()(
                 });
                 // Clear localStorage
                 localStorage.removeItem('auth-storage');
+            },
+            getManagerAnalytics: async (id: string) => {
+                set({ isLoading: true, error: null});
+                try {
+                    const res = (await authApi.getManagerAnalytics(id)).data.data;
+                    set({isLoading: false });
+                    return {totalProjects: res.totalProjects, totalMembers: res.totalMembers};
+                }
+                catch (err) {
+                    set({
+                        error: getErrorMessage(err),
+                        isLoading: false
+                    });
+                    return null;
+                }
             }
 
         }),

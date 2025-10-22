@@ -181,7 +181,7 @@ export default function MyTasks() {
   const projects = Array.from(new Set(mockTasks.map(t => t.project)));
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
