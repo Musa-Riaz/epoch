@@ -53,7 +53,7 @@ const sidebarLinksMember: SidebarLink[] = [
   },
   {
     title: "Projects",
-    href: "/member-dashboard/projects",
+    href: "/member-dashboard/my-projects",
     icon: FolderKanban,
   },
   {
@@ -74,6 +74,12 @@ const sidebarLinksMember: SidebarLink[] = [
 ];
 
 const sidebarLinksManager: SidebarLink[] = [
+  {
+    title: "Dashboard",
+    href: "/manager-dashboard",
+    icon: LayoutDashboard
+  }
+  ,
   {
     title: "Analytics",
     href: "/manager-dashboard/analytics",
