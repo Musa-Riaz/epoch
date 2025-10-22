@@ -27,6 +27,20 @@ export async function getTasks(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function getTasksByProject(req: Request, res: Response) : Promise<void> {
+  try{
+    const {projectId} = req.params;
+    const tasks = await Task.findById(projectId);
+    if(!tasks){
+      return sendError({ res, error: 'Tasks not found for the project', status: 400 });
+    }
+    return sendSuccess({ res, data: tasks, status: 200, message: 'Tasks fetched by project' });
+  }
+  catch(err){
+    return sendError({ res, error: 'Failed to fetch tasks by project', details: err as any, status: 500 });
+  }
+}
+
 export async function getTask(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;

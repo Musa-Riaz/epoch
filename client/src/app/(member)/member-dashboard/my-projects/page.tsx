@@ -254,7 +254,7 @@ export default function MyProjects() {
                       <Calendar className="w-4 h-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Due:</span>
                       <span className="font-medium">
-                        {new Date(project.dueDate).toLocaleDateString()}
+                        {new Date(project.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">

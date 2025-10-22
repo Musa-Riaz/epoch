@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { sendSuccess, sendError } from '../utils/api';
 import Project from '../../infrastructure/database/models/project.model';
 import Task from '../../infrastructure/database/models/task.model';
+import User from '../../infrastructure/database/models/user.model';
 
 export async function createProject(req: Request, res: Response): Promise<void> {
   try {
@@ -25,6 +26,30 @@ export async function getProjects(req: Request, res: Response): Promise<void> {
     return sendSuccess({ res, data: projects, status: 200, message: 'Projects fetched' });
   } catch (err) {
     return sendError({ res, error: 'Failed to fetch projects', details: err as any, status: 500 });
+  }
+}
+
+// get projects by manager
+export async function getProjectsByManager(req: Request, res: Response): Promise<void> {
+  try{
+
+    const managerId = req.params.id; // Get the id from params
+    const manager = await User.findById(managerId);
+    if(!manager || manager.role !== 'manager'){
+        return sendError({ res, error: 'Manager not found', status: 404 });
+    }
+    // get all projects managed by this manager
+    const projects = await Project.find({ owner: managerId });
+    const totalMembers = projects.reduce((sum, project) => sum + (project.team?.length || 0), 0);
+
+    return sendSuccess({res, data: { totalProjects: projects.length, totalMembers: totalMembers, projects: projects.map(p => ({
+      ...p.toObject?.() || p,
+      teamSize: p.team?.length || 0
+    })) }, status: 200, message: 'Projects fetched successfully'})
+
+  }
+  catch(err){
+    return sendError({ res, error: 'Failed to fetch projects by manager', details: err as any, status: 500 });
   }
 }
 

@@ -290,7 +290,7 @@ export default function TeamPage() {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4" />
-                      <span>Joined {new Date(member.joinDate).toLocaleDateString()}</span>
+                      <span>Joined {new Date(member.joinDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}</span>
                     </div>
                   </div>
 

@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useProjectStore } from "@/stores/project.store";
+import { useAuthStore } from "@/stores/auth.store";
+import { useTaskStore } from "@/stores/task.store";
 import {
   Select,
   SelectContent,
@@ -86,6 +89,21 @@ export default function ManagerTasks() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
 
+  const { getTasksByProject } = useTaskStore();
+  const { getProjectsByManager, projects } = useProjectStore();
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    // Fetch projects and tasks for the manager
+    const fetchProjectsAndTasks = async () => {
+      if(user?._id){
+         await getProjectsByManager(user._id);
+         
+      }
+    }
+    fetchProjectsAndTasks();
+  }, [user?._id, getProjectsByManager])
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -152,10 +170,30 @@ export default function ManagerTasks() {
             Create, assign, and monitor tasks across all projects
           </p>
         </div>
-        <Button className="gap-2">
+        <div className="flex flex-row gap-2">
+                  <Button className="gap-2">
           <Plus className="w-4 h-4" />
           Create Task
         </Button>
+        <Select>
+          <SelectTrigger className="">
+            <SelectValue placeholder="Filter by Project" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Projects</SelectItem>
+            {Array.isArray(projects) && projects.length > 0 ? (
+              projects.map((project) => (
+                <SelectItem key={String(project._id)} value={String(project._id)}>
+                  {project.name}
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem value="none" disabled>No projects available</SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+        </div>
+
       </div>
 
       {/* Stats */}
@@ -283,7 +321,7 @@ export default function ManagerTasks() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                        <span>Due: {new Date(task.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}</span>
                       </div>
                     </div>
 

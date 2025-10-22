@@ -103,6 +103,11 @@ export interface IProjectResponse {
 
 }
 
+export interface GetProjectsByManagerResponse {
+  projects: IProject[];
+  
+}
+
 export interface ManagerAnalyticsResponse {
   totalProjects: number;
   totalMembers: number;
@@ -152,3 +157,33 @@ export interface SignupRequest {
   role?: string;
   profilePicture?: string | null;
 }
+
+// Project interfaces
+export interface CreateProjectRequest {
+  name: string;
+  description?: string;
+  owner: string;
+  team?: string[];
+  status?: 'active' | 'completed' | 'archived';
+  deadline?: string;
+}
+
+export interface UpdateProjectRequest {
+  name?: string;
+  description?: string;
+  team?: string[];
+  status?: 'active' | 'completed' | 'archived';
+  deadline?: string;
+  progress?: number;
+}
+
+// Comment interfaces
+export interface CreateCommentRequest {
+  taskId: string;
+  content: string;
+}
+
+export interface UpdateCommentRequest {
+  content: string;
+}
+

@@ -349,7 +349,7 @@ const ManagerDashboard = () => {
                               </span>
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                Due: {new Date(project.deadline).toLocaleDateString()}
+                                Due: {new Date(project.deadline).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}
                               </span>
                             </CardDescription>
                           </div>

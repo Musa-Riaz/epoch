@@ -325,7 +325,7 @@ export default function MyTasks() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
-                          <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                          <span>Due: {new Date(task.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span>Assigned by: {task.assignedBy}</span>
