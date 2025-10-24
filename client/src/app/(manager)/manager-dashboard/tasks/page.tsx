@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogTrigger, DialogClose, DialogContent, DialogDescription, DialogHeader } from "@/components/ui/dialog";
 import { 
   CheckSquare, 
   Plus, 
@@ -28,6 +29,9 @@ import {
   CheckCircle2,
   Circle
 } from "lucide-react";
+import { DialogTitle } from "@radix-ui/react-dialog";
+import { IUser } from "../../../../../../server/src/infrastructure/database/models/user.model";
+import toast from "react-hot-toast";
 
 export default function ManagerTasks() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,9 +40,13 @@ export default function ManagerTasks() {
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [selectedProject, setSelectedProject] = useState<string>("all");
   const [taskAssignees, setTaskAssignees] = useState<Record<string, { firstName: string; lastName: string } | null>>({});
+  const [members, setMembers] = useState<IUser[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<string>("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string>("");
 
-  const { getTasksByProject, getTasks, tasks, getUserByTask } = useTaskStore();
-  const { getProjectsByManager, projects } = useProjectStore();
+  const { getTasksByProject, getTasks, tasks, getUserByTask, assignTask } = useTaskStore();
+  const { getProjectsByManager, projects, getMembersByProject } = useProjectStore();
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -93,6 +101,59 @@ export default function ManagerTasks() {
     
     fetchAssignees();
   }, [tasks, getUserByTask]);
+
+  // get members by project
+  useEffect(() => {
+    const getMembers = async () => {
+      if (selectedProject && selectedProject !== "all") {
+        const res = await getMembersByProject(selectedProject);
+        setMembers(res || []);
+      }
+      else if (selectedProject === "all" && projects.length > 0) {
+        // Reset members first, then collect all members from all projects
+        const allMembers: IUser[] = [];
+        const seenMemberIds = new Set<string>();
+        
+        for (const project of projects) {
+          const projectMembers = await getMembersByProject(String(project._id));
+          
+          // Add members avoiding duplicates (in case a user is in multiple projects)
+          if (projectMembers) {
+            projectMembers.forEach((member: IUser) => {
+              if (!seenMemberIds.has(String(member._id))) {
+                seenMemberIds.add(String(member._id));
+                allMembers.push(member);
+              }
+            });
+          }
+        }
+        
+        console.log("All members from all projects:", allMembers);
+        setMembers(allMembers);
+      }
+    };
+    getMembers();
+  }, [selectedProject, getMembersByProject, projects]);
+
+  const handleAssignTask = async (taskId: string, memberId: string)  => {
+    // Implement task assignment logic here
+    try{
+      console.log(`Assigning task ${taskId} to member ${memberId}`);
+      await assignTask(taskId, memberId);
+      toast.success("Task assigned successfully");
+      setIsDialogOpen(false);
+      setSelectedMemberId("");
+      // Refresh tasks to show updated assignee
+      if (selectedProject === "all") {
+        await getTasks();
+      } else {
+        await getTasksByProject(selectedProject);
+      }
+    }
+    catch{
+      toast.error("Failed to assign task");
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -280,7 +341,7 @@ export default function ManagerTasks() {
 
         <TabsContent value={selectedTab} className="mt-6 space-y-4">
           {filteredTasks.map((task) => (
-            <Card key={task.id} className="hover:shadow-lg transition-shadow">
+            <Card key={String(task?._id)} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start gap-4">
                   <div className="pt-1">{getStatusIcon(task.status)}</div>
@@ -332,7 +393,56 @@ export default function ManagerTasks() {
 
                     <div className="flex gap-2 mt-4">
                       <Button variant="outline" size="sm">Edit</Button>
-                      <Button variant="outline" size="sm">Reassign</Button>
+                      <Dialog open={isDialogOpen && currentTaskId === String(task._id)} onOpenChange={(open) => {
+                        setIsDialogOpen(open);
+                        if (open) {
+                          setCurrentTaskId(String(task._id));
+                          setSelectedMemberId("");
+                        }
+                      }}>
+                        <DialogTrigger asChild>
+                           <Button variant="outline" size="sm">Reassign</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Reassign Task</DialogTitle>
+                            <DialogDescription>
+                              Select a team member to reassign this task to.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Team Member</label>
+                              <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a team member" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {members?.map((member) => (
+                                    <SelectItem key={String(member._id)} value={String(member._id)}>
+                                      {member.firstName} {member.lastName}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="flex justify-end gap-2">
+                            <DialogClose asChild>
+                              <Button variant="outline" onClick={() => {
+                                setSelectedMemberId("");
+                                setIsDialogOpen(false);
+                              }}>Cancel</Button>
+                            </DialogClose>
+                            <Button 
+                              onClick={() => handleAssignTask(String(task._id), selectedMemberId)}
+                              disabled={!selectedMemberId}
+                            >
+                              Reassign
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                       <Button size="sm">View Details</Button>
                     </div>
                   </div>

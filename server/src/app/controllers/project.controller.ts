@@ -91,6 +91,25 @@ export async function getProjectById(req: Request, res: Response): Promise<void>
   }
 }
 
+// get team members for a particular project
+export async function getMembersByProject(req: Request, res: Response): Promise<void>{
+
+  try{
+  const { id } = req.params;
+  const project = await Project.findById(id);
+  if(!project){
+    return sendError({ res, error: 'Project not found', status: 404 });
+  }
+
+  const members = await User.find({_id: { $in: project.team }});
+  return sendSuccess({ res, data: members, status: 200, message: 'Team members fetched successfully' });
+
+  }
+  catch(err){
+    return sendError({ res, error: 'Failed to get team members', details: err as any, status: 500 });
+  }
+}
+
 export async function updateProject(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;

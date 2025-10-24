@@ -3,6 +3,7 @@ import { persist, devtools } from 'zustand/middleware';
 import { projectApi } from '@/lib/api';
 import { IProject, CreateProjectRequest, UpdateProjectRequest, ProjectAnalyticsResponse } from '@/interfaces/api';
 import { getErrorMessage } from '@/utils/helpers.utils';
+import { IUser } from '../../../server/src/infrastructure/database/models/user.model';
 
 interface ProjectState {
   projects: IProject[];
@@ -22,6 +23,7 @@ interface ProjectActions {
   deleteProject: (id: string) => Promise<void>;
   setCurrentProject: (project: IProject | null) => void;
   clearError: () => void;
+  getMembersByProject: (projectId: string) => Promise<IUser[] | void>;
 }
 
 type ProjectStore = ProjectState & ProjectActions;
@@ -78,6 +80,20 @@ export const useProjectStore = create<ProjectStore>()(
             return response.data.data;
           } catch (err) {
             set({ error: getErrorMessage(err), isLoading: false });
+          }
+        },
+
+        getMembersByProject: async (projectId: string) => {
+          set({ isLoading: true, error: null });
+          try {
+
+            const response = await projectApi.getMembersByProject(projectId);
+            set({ isLoading: false });
+            return response.data.data;
+
+          } catch (err) {
+            set({ error: getErrorMessage(err), isLoading: false });
+            return null;
           }
         },
 

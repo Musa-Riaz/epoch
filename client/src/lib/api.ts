@@ -65,7 +65,7 @@ export const taskApi = {
     await api.get<ApiResponse<ITask[]>>(`/tasks/project/${projectId}`),
 
   getUserByTask: async (taskId: string) => await api.get<ApiResponse<IUserResponse>>(`/tasks/user/${taskId}`),
-
+  
   createTask: async (taskData: CreateTaskRequest) =>
     await api.post<ApiResponse<ITask>>("/tasks", taskData),
 
@@ -91,6 +91,10 @@ export const projectApi = {
   getProjectAnalytics: async (projectId: string) =>
     await api.get<ApiResponse<ProjectAnalyticsResponse>>(
       `/projects/${projectId}/analytics`
+    ),
+
+    getMembersByProject: async (projectId: string) => await api.get<ApiResponse<IUserResponse[]>>(
+      `/projects/members/${projectId}/projects`
     ),
 
   createProject: async (projectData: CreateProjectRequest) =>

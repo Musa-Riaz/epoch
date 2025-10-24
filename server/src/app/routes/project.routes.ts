@@ -7,7 +7,8 @@ import {
   updateProjectStatus,
   deleteProject,
   getProjectsByManager,
-  getProjectAnalytics
+  getProjectAnalytics,
+  getMembersByProject
 } from '../controllers/project.controller';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import { validateRequest, projectSchema } from '../validators/schemas';
@@ -19,6 +20,7 @@ router.get('/', authMiddleware, getProjects);
 router.get('/:id', authMiddleware, getProjectById);
 router.get('/manager/:id', authMiddleware, getProjectsByManager);
 router.get('/:id/analytics', authMiddleware, getProjectAnalytics);
+router.get('/members/:id/projects', authMiddleware, getMembersByProject);
 router.patch('/:id', authMiddleware, updateProject);
 router.patch('/:id/status', authMiddleware, updateProjectStatus);
 router.delete('/:id', authMiddleware, deleteProject);

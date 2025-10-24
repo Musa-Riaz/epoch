@@ -19,6 +19,7 @@ interface TaskActions {
     getTasks: () => Promise<ITask[] | null>;
     getTasksByProject: (projectId: string) => Promise<ITask[] | null>;
     getUserByTask: (taskId: string) => Promise<any | null>;
+    assignTask: (taskId: string, memberId: string) => Promise<ITask | null>;
 }
 
 export const useTaskStore = create<TaskState & TaskActions>()(
