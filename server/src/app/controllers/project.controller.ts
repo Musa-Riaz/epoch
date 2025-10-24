@@ -53,6 +53,33 @@ export async function getProjectsByManager(req: Request, res: Response): Promise
   }
 }
 
+// Get projects analytics
+
+export async function getProjectAnalytics(req: Request, res: Response) : Promise<void> {
+  try {
+    const projectId = req.params.id;
+    const project = await Project.findById(projectId);
+    if (!project) return sendError({ res, error: 'Project not found', status: 404 });
+
+    // Get tasks related to the project
+    const tasks = await Task.find({ projectId });
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(t => t.status === 'done').length;
+    const pendingTasks = tasks.filter(t => t.status === 'todo').length;
+    const inProgressTasks = tasks.filter(t => t.status === 'in-progress').length;
+    const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+    return sendSuccess({
+      res,
+      data: { projectId, progress, totalTasks, completedTasks, pendingTasks, inProgressTasks },
+      status: 200,
+      message: 'Project analytics fetched successfully'
+    });
+  } catch (err) {
+    return sendError({ res, error: 'Failed to fetch project analytics', details: err as any, status: 500 });
+  }
+}
+
 export async function getProjectById(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;

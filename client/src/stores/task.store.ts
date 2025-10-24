@@ -18,6 +18,7 @@ interface TaskActions {
     deleteTask: (id: string) => Promise<boolean>;
     getTasks: () => Promise<ITask[] | null>;
     getTasksByProject: (projectId: string) => Promise<ITask[] | null>;
+    getUserByTask: (taskId: string) => Promise<any | null>;
 }
 
 export const useTaskStore = create<TaskState & TaskActions>()(
@@ -91,6 +92,32 @@ export const useTaskStore = create<TaskState & TaskActions>()(
                         return response;
                     } catch (error) {
                         set({ error: getErrorMessage(error), isLoading: false });
+                        return null;
+                    }
+                },
+                getUserByTask: async (taskId : string) => {
+                    set({ isLoading: true });
+                    try {
+
+                        const response = (await taskApi.getUserByTask(taskId)).data.data;
+                        set({ isLoading: false });
+                        return response;
+
+                    }
+                    catch(err){
+                        set({ error: getErrorMessage(err), isLoading: false });
+                        return null;
+                    }
+                },
+                assignTask: async (taskId: string, memberId: string) => {
+                    set({isLoading: true});
+                    try{
+                        const response = (await taskApi.assignTask(taskId, memberId)).data.data;
+                        set({isLoading: false});
+                        return response;
+                    }
+                    catch(err){
+                        set({ error: getErrorMessage(err), isLoading: false });
                         return null;
                     }
                 }

@@ -35,8 +35,9 @@ export default function ManagerTasks() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [selectedProject, setSelectedProject] = useState<string>("all");
+  const [taskAssignees, setTaskAssignees] = useState<Record<string, { firstName: string; lastName: string } | null>>({});
 
-  const { getTasksByProject, getTasks, tasks } = useTaskStore();
+  const { getTasksByProject, getTasks, tasks, getUserByTask } = useTaskStore();
   const { getProjectsByManager, projects } = useProjectStore();
   const { user } = useAuthStore();
 
@@ -60,7 +61,38 @@ export default function ManagerTasks() {
       }
     };
     fetchTasks();
-  }, [selectedProject, getTasksByProject, getTasks])
+  }, [selectedProject, getTasksByProject, getTasks]);
+
+  // Fetch assignee information for each task
+  useEffect(() => {
+    const fetchAssignees = async () => {
+      if (tasks.length > 0) {
+        const assigneeData: Record<string, { firstName: string; lastName: string } | null> = {};
+
+        
+        for (const task of tasks) {
+          if (task.assignedTo) {
+            try {
+              const userData = await getUserByTask(String(task.assignedTo));
+              if (userData) {
+                assigneeData[String(task.assignedTo)] = {
+                  firstName: userData.firstName,
+                  lastName: userData.lastName
+                };
+              }
+            } catch (error) {
+              console.error('Failed to fetch assignee for task:', task.assignedTo, error);
+              assigneeData[String(task.assignedTo)] = null;
+            }
+          }
+        }
+        
+        setTaskAssignees(assigneeData);
+      }
+    };
+    
+    fetchAssignees();
+  }, [tasks, getUserByTask]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -276,8 +308,19 @@ export default function ManagerTasks() {
                         <span>Project ID: {String(task.projectId)}</span>
                       </div>
                       <div className="flex items-center gap-2">
+                        <CheckSquare className="w-4 h-4" />
+                        <span>Project Name: {String(task.title)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
                         <User className="w-4 h-4" />
-                        <span>{task.assignedTo ? String(task.assignedTo) : 'Unassigned'}</span>
+                        <span>Assigned To: 
+                          {taskAssignees[String(task.assignedTo)] 
+                            ? ` ${taskAssignees[String(task.assignedTo)]?.firstName} ${taskAssignees[String(task.assignedTo)]?.lastName}`
+                            : task.assignedTo 
+                              ? String(task.assignedTo)
+                              : 'Unassigned'
+                          }
+                        </span>
                       </div>
                       {task.dueDate && (
                         <div className="flex items-center gap-2">

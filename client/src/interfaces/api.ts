@@ -108,6 +108,15 @@ export interface GetProjectsByManagerResponse {
   
 }
 
+export interface ProjectAnalyticsResponse {
+  projectId: string;
+  progress: number;
+  totalTasks: number;
+  completedTasks: number;
+  pendingTasks: number;
+  inProgressTasks: number;
+}
+
 export interface ManagerAnalyticsResponse {
   totalProjects: number;
   totalMembers: number;
@@ -164,6 +173,7 @@ export interface CreateProjectRequest {
   description?: string;
   owner: string;
   team?: string[];
+  teamEmails?: string[]; // Added for email invitations
   status?: 'active' | 'completed' | 'archived';
   deadline?: string;
 }

@@ -1,14 +1,33 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuthStore } from "@/stores/auth.store";
+import { useProjectStore } from "@/stores/project.store";
 import {
   BarChart3,
   Calendar,
@@ -21,11 +40,29 @@ import {
   AlertCircle,
   FileText,
   Activity,
+  Loader2,
 } from "lucide-react";
+import toast from "react-hot-toast";
+import { ProjectAnalyticsResponse } from "@/interfaces/api";
 
 const ManagerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  
+  // Form state
+  const [projectName, setProjectName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [projectDeadline, setProjectDeadline] = useState("");
+  const [memberEmails, setMemberEmails] = useState<string[]>([]);
+  const [currentEmail, setCurrentEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [projectStatus, setProjectStatus] = useState<'active' | 'completed' | 'archived'>('active');
+  const [isCreating, setIsCreating] = useState(false);
+  const [projectAnalytics, setProjectAnalytics] = useState<Record<string, ProjectAnalyticsResponse | null>>({});
+  
+
   const { getManagerAnalytics, user } = useAuthStore();
+  const { createProject, getProjectsByManager, getProjectAnalytics, projects } = useProjectStore();
 
 
   interface ManagerAnalytics {
@@ -35,12 +72,11 @@ const ManagerDashboard = () => {
 
   const [stats, setStats] = React.useState<ManagerAnalytics | null>(null);
 
-
+// use effect to fetch manager analytics
   useEffect(() => {
     const fetchAnalytics = async () => {
       if(user?.role === 'manager' && user?._id) {
         const analytics = await getManagerAnalytics(user._id);
-        console.log('these are the analytics', analytics);
         // Update state or perform actions with the analytics data
         setStats(analytics);
       }
@@ -48,39 +84,114 @@ const ManagerDashboard = () => {
     fetchAnalytics();
   }, [user, getManagerAnalytics]);
 
+    // use effect to fetch project analytics - runs when projects are loaded
+    useEffect(() => {
+      const fetchProjectAnalytics = async () => {
+        if (user?.role === 'manager' && user?._id && projects.length > 0) {
+          // fetch analytics for each project
+          for (const project of projects) {
+            try {
+              const res = await getProjectAnalytics(String(project._id));
+              setProjectAnalytics((prev) => ({
+                ...prev,
+                [String(project._id)]: res || null
+              }));
+            } catch (error) {
+              console.error('Failed to fetch analytics for project:', project._id, error);
+            }
+          }
+        }
+      }
+      fetchProjectAnalytics();
+    }, [projects, user, getProjectAnalytics]);
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleAddEmail = () => {
+    const email = currentEmail.trim();
+    
+    if (!email) {
+      setEmailError("Please enter an email address");
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
+    if (memberEmails.includes(email)) {
+      setEmailError("This email has already been added");
+      return;
+    }
+
+    setMemberEmails((prev) => [...prev, email]);
+    setCurrentEmail("");
+    setEmailError("");
+    
+  };
+
+  const handleRemoveEmail = (emailToRemove: string) => {
+    setMemberEmails((prev) => prev.filter((email) => email !== emailToRemove));
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddEmail();
+    }
+  };
+
+  const handleCreateProject = async () => {
+    if (!projectName.trim() || !user?._id) return;
+
+    setIsCreating(true);
+    try {
+      const projectData = {
+        name: projectName,
+        description: projectDescription,
+        owner: user._id,
+        teamEmails: memberEmails, // Send emails instead of user IDs
+        status: projectStatus,
+        deadline: projectDeadline || undefined,
+      };
+
+      const newProject = await createProject(projectData);
+      
+      if (newProject) {
+        // Reset form
+        setProjectName("");
+        setProjectDescription("");
+        setProjectDeadline("");
+        setMemberEmails([]);
+        setCurrentEmail("");
+        setEmailError("");
+        setProjectStatus('active');
+        setIsCreateProjectOpen(false);
+        
+        // Refresh projects list
+        await getProjectsByManager(user._id);
+
+        toast.success('Project created successfully!');
+        
+        // TODO: Send invitation emails to memberEmails
+        console.log('Invitation emails to be sent to:', memberEmails);
+      }
+    } catch (error) {
+      console.error('Failed to create project:', error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   //TODO: currently, for stats I am only getting the total number of projects. Need to expand this to get other stats as well.
 
   // Mock data - replace with actual API calls
 
-  const projects = [
-    {
-      id: 1,
-      name: "E-commerce Platform",
-      status: "active",
-      progress: 75,
-      members: 5,
-      tasks: { total: 24, completed: 18 },
-      deadline: "2025-11-15",
-    },
-    {
-      id: 2,
-      name: "Mobile App Redesign",
-      status: "active",
-      progress: 45,
-      members: 3,
-      tasks: { total: 16, completed: 7 },
-      deadline: "2025-10-30",
-    },
-    {
-      id: 3,
-      name: "API Integration",
-      status: "completed",
-      progress: 100,
-      members: 4,
-      tasks: { total: 12, completed: 12 },
-      deadline: "2025-10-20",
-    },
-  ];
+  
 
   const members = [
     {
@@ -147,10 +258,189 @@ const ManagerDashboard = () => {
               Manage your projects, tasks, and team members
             </p>
           </div>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Project
-          </Button>
+          
+          {/* Create Project Dialog */}
+          <Dialog open={isCreateProjectOpen} onOpenChange={setIsCreateProjectOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Project
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Project</DialogTitle>
+                <DialogDescription>
+                  Add a new project and assign team members to it.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                {/* Project Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="project-name">
+                    Project Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="project-name"
+                    placeholder="Enter project name"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                  />
+                </div>
+
+                {/* Project Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="project-description">Description</Label>
+                  <Textarea
+                    id="project-description"
+                    placeholder="Enter project description"
+                    value={projectDescription}
+                    onChange={(e) => setProjectDescription(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                {/* Deadline and Status Row */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Deadline */}
+                  <div className="space-y-2">
+                    <Label htmlFor="project-deadline">Deadline</Label>
+                    <Input
+                      id="project-deadline"
+                      type="date"
+                      value={projectDeadline}
+                      onChange={(e) => setProjectDeadline(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div className="space-y-2">
+                    <Label htmlFor="project-status">Status</Label>
+                    <Select value={projectStatus} onValueChange={(value: 'active' | 'completed' | 'archived') => setProjectStatus(value)}>
+                      <SelectTrigger id="project-status">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="archived">Archived</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Team Members */}
+                <div className="space-y-2">
+                  <Label>Invite Team Members via Email</Label>
+                  <div className="space-y-3">
+                    {/* Email Input */}
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Input
+                          id="member-email"
+                          type="email"
+                          placeholder="Enter team member email"
+                          value={currentEmail}
+                          onChange={(e) => {
+                            setCurrentEmail(e.target.value);
+                            setEmailError("");
+                          }}
+                          onKeyPress={handleKeyPress}
+                          className={emailError ? "border-red-500" : ""}
+                        />
+                        {emailError && (
+                          <p className="text-xs text-red-500 mt-1">{emailError}</p>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAddEmail}
+                        disabled={!currentEmail.trim()}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add
+                      </Button>
+                    </div>
+
+                    {/* Added Emails List */}
+                    {memberEmails.length > 0 && (
+                      <div className="border rounded-lg p-3 space-y-2 max-h-[200px] overflow-y-auto">
+                        {memberEmails.map((email, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-2 bg-secondary/50 rounded-md"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Users className="h-4 w-4 text-primary" />
+                              </div>
+                              <span className="text-sm font-medium">{email}</span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveEmail(email)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <span className="sr-only">Remove</span>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-muted-foreground">
+                      {memberEmails.length === 0 
+                        ? "Add email addresses of team members you want to invite to this project"
+                        : `${memberEmails.length} member${memberEmails.length !== 1 ? 's' : ''} will receive an invitation email`
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCreateProjectOpen(false)}
+                  disabled={isCreating}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateProject}
+                  disabled={!projectName.trim() || isCreating}
+                >
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Project
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* KPI Cards */}
@@ -234,13 +524,18 @@ const ManagerDashboard = () => {
                   <CardDescription>Your most recent active projects</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {projects.slice(0, 3).map((project) => (
+                  {projects.slice(0, 3).map((project) => {
+                    const analytics = projectAnalytics[String(project._id)];
+                    const progress = analytics?.progress || project.progress || 0;
+                    const completedTasks = analytics?.completedTasks || 0;
+                    const totalTasks = analytics?.totalTasks || 0;
+                    return (
                     <div key={project.id} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium">{project.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {project.tasks.completed}/{project.tasks.total} tasks completed
+                            {completedTasks}/{totalTasks} tasks completed
                           </p>
                         </div>
                         <Badge
@@ -257,7 +552,8 @@ const ManagerDashboard = () => {
                       </div>
                       <Progress value={project.progress} />
                     </div>
-                  ))}
+                    )
+})}
                 </CardContent>
               </Card>
 
@@ -376,7 +672,9 @@ const ManagerDashboard = () => {
                         </div>
                         <div className="flex items-center justify-between">
                           <p className="text-sm text-muted-foreground">
-                            {project.tasks.completed} of {project.tasks.total} tasks completed
+                            {
+                              projectAnalytics?.completedTasks
+                          } of {projectAnalytics?.totalTasks} tasks completed
                           </p>
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm">

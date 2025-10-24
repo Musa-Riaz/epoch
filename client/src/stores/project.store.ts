@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { projectApi } from '@/lib/api';
-import { IProject, CreateProjectRequest, UpdateProjectRequest } from '@/interfaces/api';
+import { IProject, CreateProjectRequest, UpdateProjectRequest, ProjectAnalyticsResponse } from '@/interfaces/api';
 import { getErrorMessage } from '@/utils/helpers.utils';
 
 interface ProjectState {
@@ -15,6 +15,7 @@ interface ProjectActions {
   getProjects: () => Promise<void>;
   getProject: (id: string) => Promise<IProject | null>;
   getProjectsByManager: (managerId: string) => Promise<void>;
+  getProjectAnalytics: (projectId: string) => Promise<ProjectAnalyticsResponse | void>;
   createProject: (projectData: CreateProjectRequest) => Promise<IProject | null>;
   updateProject: (id: string, projectData: UpdateProjectRequest) => Promise<IProject | null>;
   updateProjectStatus: (id: string, status: 'active' | 'completed' | 'archived') => Promise<IProject | null>;
@@ -64,6 +65,17 @@ export const useProjectStore = create<ProjectStore>()(
           try {
             const response = await projectApi.getProjectsByManager(managerId);
             set({ projects: response.data.data.projects, isLoading: false });
+          } catch (err) {
+            set({ error: getErrorMessage(err), isLoading: false });
+          }
+        },
+
+        getProjectAnalytics: async (projectId: string) => {
+          set({ isLoading: true, error: null });
+          try {
+            const response = await projectApi.getProjectAnalytics(projectId);
+            set({ isLoading: false });
+            return response.data.data;
           } catch (err) {
             set({ error: getErrorMessage(err), isLoading: false });
           }

@@ -11,7 +11,7 @@ router.get('/profile', getProfile);
 
 // Admin routes
 router.get('/users', authMiddleware, requireRole(['admin']), getAllUsers);
-router.get('/user/:userId', authMiddleware, requireRole(['admin']), getUserById);
+router.get('/user/:userId', authMiddleware, requireRole(['admin', 'manager']), getUserById);
 
 // Manager routes
 router.get('/manager/analytics/:id', authMiddleware, requireRole(['manager']), getManagerAnalytics)

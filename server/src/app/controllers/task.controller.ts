@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { sendSuccess, sendError } from '../utils/api';
 import Task from '../../infrastructure/database/models/task.model';
+import { User} from '../../infrastructure/database/models/user.model';
 import { recalcProjectProgress } from './project.controller';
 
 export async function createTask(req: Request, res: Response): Promise<void> {
@@ -53,6 +54,18 @@ export async function getTask(req: Request, res: Response): Promise<void> {
   }
 }
 
+// get user by their task assignment
+export async function getUserbyTask(req: Request, res: Response): Promise<void> {
+  try{
+    const { id }= req.params;
+    const user = await User.findById(id);
+    return sendSuccess({ res, data: user, status: 200, message: 'User fetched by task' });
+  }
+  catch(err){
+    return sendError({ res, error: 'Failed to fetch user by task', details: err as any, status: 500 });
+  }
+}
+
 export async function updateTask(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
@@ -80,13 +93,21 @@ export async function deleteTask(req: Request, res: Response): Promise<void> {
 }
 
 
-//  TODO: add the controller that will allow members to assign tasks to the members
 
-export async function assignTask(req: Request, res: Response) {
-  try{
-
-  }
-  catch(err){
-    
-  }
+// method through which a manager will assign tasks to a member
+export async function assignTask(req: Request, res: Response): Promise<void> {
+    try {
+        const { taskId, memberId} = req.body;
+        const task = await Task.findById(taskId);
+        if(!task){
+            return sendError({ res, error: 'Task not found', status: 404 });
+        }
+        task.assignedTo = memberId;
+        await task.save();
+        return sendSuccess({ res, data: task, status: 200, message: 'Task assigned to member successfully' });
+        
+    }
+    catch(err){
+        return sendError({ res, error: 'Failed to assign task', details: err as any, status: 500 });
+    }
 }

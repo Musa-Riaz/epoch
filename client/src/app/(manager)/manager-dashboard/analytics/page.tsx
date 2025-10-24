@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  TrendingUp,
   TrendingDown,
   Users,
   FolderKanban,
@@ -14,24 +13,16 @@ import {
   Target
 } from "lucide-react";
 
+import { useProjectStore } from "@/stores/project.store";
+import { useAuthStore } from "@/stores/auth.store";
+import { useEffect, useState } from "react";
+import { ProjectAnalyticsResponse } from "@/interfaces/api";
+
 // Mock data - replace with actual API calls
 const stats = {
-  totalProjects: 12,
-  activeProjects: 8,
-  completedTasks: 234,
-  pendingTasks: 67,
-  teamMembers: 15,
-  completionRate: 78,
   onTimeDelivery: 85,
   avgTaskTime: "3.2 days"
 };
-
-const projectPerformance = [
-  { name: "E-Commerce Platform", progress: 65, status: "on-track", tasksCompleted: 23, totalTasks: 35 },
-  { name: "Mobile App Redesign", progress: 40, status: "at-risk", tasksCompleted: 12, totalTasks: 30 },
-  { name: "API Integration", progress: 100, status: "completed", tasksCompleted: 18, totalTasks: 18 },
-  { name: "Dashboard Analytics", progress: 10, status: "on-track", tasksCompleted: 2, totalTasks: 25 }
-];
 
 const teamPerformance = [
   { name: "Emily Rodriguez", tasksCompleted: 45, tasksInProgress: 6, efficiency: 88 },
@@ -61,6 +52,67 @@ export default function ManagerAnalytics() {
     }
   };
 
+  // hooks
+  const { user, getManagerAnalytics } = useAuthStore();
+  const { getProjectsByManager, projects, getProjectAnalytics } = useProjectStore();
+
+  // states
+
+  interface ManagerAnalytics {
+    totalProjects: number;
+    totalMembers: number;
+  }
+
+  const [analytics, setAnalytics] = useState<ManagerAnalytics | null>(null);
+  const [projectAnalytics, setProjectAnalytics] = useState<Record<string, ProjectAnalyticsResponse | null>>({});
+
+  // Calculate aggregate stats from project analytics
+  const aggregateStats = {
+    totalTasks: Object.values(projectAnalytics).reduce((sum, analytics) => sum + (analytics?.totalTasks || 0), 0),
+    completedTasks: Object.values(projectAnalytics).reduce((sum, analytics) => sum + (analytics?.completedTasks || 0), 0),
+    pendingTasks: Object.values(projectAnalytics).reduce((sum, analytics) => sum + (analytics?.pendingTasks || 0), 0),
+    inProgressTasks: Object.values(projectAnalytics).reduce((sum, analytics) => sum + (analytics?.inProgressTasks || 0), 0),
+  };
+
+  const completionRate = aggregateStats.totalTasks > 0 
+    ? Math.round((aggregateStats.completedTasks / aggregateStats.totalTasks) * 100) 
+    : 0;
+
+
+  // Fetch the projects as soon as the page loads
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (user?.role === "manager" && user?._id) {
+        await getProjectsByManager(user._id);
+        // After getting projects, fetch analytics
+        setAnalytics(await getManagerAnalytics(user._id));
+      }
+    }
+    fetchProjects();
+  }, [user, getProjectsByManager, getManagerAnalytics]);
+
+    // use effect to fetch project analytics - runs when projects are loaded
+    useEffect(() => {
+      const fetchProjectAnalytics = async () => {
+        if (user?.role === 'manager' && user?._id && projects.length > 0) {
+          // fetch analytics for each project
+          for (const project of projects) {
+            try {
+              const res = await getProjectAnalytics(String(project._id));
+              setProjectAnalytics((prev) => ({
+                ...prev,
+                [String(project._id)]: res || null
+              }));
+            } catch (error) {
+              console.error('Failed to fetch analytics for project:', project._id, error);
+            }
+          }
+        }
+      }
+      fetchProjectAnalytics();
+    }, [projects, user, getProjectAnalytics]);
+
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -81,9 +133,9 @@ export default function ManagerAnalytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.activeProjects}</div>
+            <div className="text-2xl font-bold">{projects?.length}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              of {stats.totalProjects} total
+              of {projects?.length} total
             </p>
           </CardContent>
         </Card>
@@ -96,11 +148,10 @@ export default function ManagerAnalytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">{stats.completionRate}%</div>
-            <div className="flex items-center gap-1 text-xs text-green-500 mt-1">
-              <TrendingUp className="w-3 h-3" />
-              <span>+5% from last month</span>
-            </div>
+            <div className="text-2xl font-bold text-green-500">{completionRate}%</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {aggregateStats.completedTasks} of {aggregateStats.totalTasks} tasks
+            </p>
           </CardContent>
         </Card>
 
@@ -112,9 +163,9 @@ export default function ManagerAnalytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">{stats.pendingTasks}</div>
+            <div className="text-2xl font-bold text-yellow-500">{aggregateStats.pendingTasks}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {stats.completedTasks} completed
+              {aggregateStats.inProgressTasks} in progress
             </p>
           </CardContent>
         </Card>
@@ -127,7 +178,7 @@ export default function ManagerAnalytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.teamMembers}</div>
+            <div className="text-2xl font-bold">{analytics?.totalMembers}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Active contributors
             </p>
@@ -199,27 +250,42 @@ export default function ManagerAnalytics() {
               <CardDescription>Track progress and status of all projects</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {projectPerformance.map((project, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{project.name}</span>
-                          <Badge variant="outline" className={getStatusColor(project.status)}>
-                            {project.status}
-                          </Badge>
+              {projects.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FolderKanban className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No projects available</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {projects.map((project) => {
+                    // extracting anayltics by using the project Id as key
+                    const analytics = projectAnalytics[String(project._id)];
+                    const progress = analytics?.progress || project.progress || 0;
+                    const completedTasks = analytics?.completedTasks || 0;
+                    const totalTasks = analytics?.totalTasks || 0;
+                    
+                    return (
+                      <div key={String(project._id)} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{project.name}</span>
+                              <Badge variant="outline" className={getStatusColor(project.status)}>
+                                {project.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {completedTasks} of {totalTasks} tasks completed
+                            </p>
+                          </div>
+                          <span className="font-bold">{progress}%</span>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {project.tasksCompleted} of {project.totalTasks} tasks completed
-                        </p>
+                        <Progress value={progress} />
                       </div>
-                      <span className="font-bold">{project.progress}%</span>
-                    </div>
-                    <Progress value={project.progress} />
-                  </div>
-                ))}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

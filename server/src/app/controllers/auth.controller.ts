@@ -174,7 +174,6 @@ export async function getManagerAnalytics(req: Request, res: Response) : Promise
     } 
     // get all projects managed by this manager
     const projects = await Project.find({ owner: managerId });
-    console.log(projects)
     const totalMembers = projects.reduce((sum, project) => sum + (project.team?.length || 0), 0);
     
     return sendSuccess({ 
@@ -197,12 +196,3 @@ export async function getManagerAnalytics(req: Request, res: Response) : Promise
 }
 
 
-// method through which a manager will assign tasks to a member
-export async function assignTask(req: Request, res: Response): Promise<void> {
-    try {
-
-    }
-    catch(err){
-        return sendError({ res, error: 'Failed to assign task', details: err as any, status: 500 });
-    }
-}

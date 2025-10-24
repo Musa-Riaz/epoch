@@ -1,6 +1,6 @@
 import { api } from "@/lib/axios";
 import { ApiResponse } from "@/types";
-import { 
+import {
   CreateTaskRequest,
   IUserResponse,
   ITask,
@@ -14,7 +14,8 @@ import {
   UpdateCommentRequest,
   IProject,
   GetProjectsByManagerResponse,
-  IComment
+  ProjectAnalyticsResponse,
+  IComment,
 } from "@/interfaces/api";
 
 export const authApi = {
@@ -38,7 +39,7 @@ export const authApi = {
       email,
       password,
       role,
-      profilePicture
+      profilePicture,
     }),
 
   getUserById: async (id: string) =>
@@ -47,22 +48,31 @@ export const authApi = {
   getAllUsers: async () =>
     await api.get<ApiResponse<IUserResponse[]>>("/auth/users"),
 
-  getManagerAnalytics: async (id: string) => await api.get<ApiResponse<ManagerAnalyticsResponse>>(`/auth/manager/analytics/${id}`),
+  getManagerAnalytics: async (id: string) =>
+    await api.get<ApiResponse<ManagerAnalyticsResponse>>(
+      `/auth/manager/analytics/${id}`
+    ),
 };
 
 export const taskApi = {
   // Define task-related API methods here
   getTasks: async () => await api.get<ApiResponse<ITask[]>>("/tasks"),
 
-  getTask: async (id: string) => await api.get<ApiResponse<ITask>>(`/tasks/${id}`),
+  getTask: async (id: string) =>
+    await api.get<ApiResponse<ITask>>(`/tasks/${id}`),
 
-  getTasksByProject: async (projectId: string) => await api.get<ApiResponse<ITask[]>>(`/tasks/project/${projectId}`),
+  getTasksByProject: async (projectId: string) =>
+    await api.get<ApiResponse<ITask[]>>(`/tasks/project/${projectId}`),
+
+  getUserByTask: async (taskId: string) => await api.get<ApiResponse<IUserResponse>>(`/tasks/user/${taskId}`),
 
   createTask: async (taskData: CreateTaskRequest) =>
     await api.post<ApiResponse<ITask>>("/tasks", taskData),
 
   updateTask: async (id: string, taskData: UpdateTaskRequest) =>
     await api.patch<ApiResponse<ITask>>(`/tasks/${id}`, taskData),
+  assignTask: async (taskId: string, memberId: string) => await api.post<ApiResponse<ITask>>('/tasks/assign', {taskId, memberId}),
+
   deleteTask: async (id: string) =>
     await api.delete<ApiResponse<null>>(`/tasks/${id}`),
 };
@@ -70,10 +80,18 @@ export const taskApi = {
 export const projectApi = {
   getProjects: async () => await api.get<ApiResponse<IProject[]>>("/projects"),
 
-  getProject: async (id: string) => await api.get<ApiResponse<IProject>>(`/projects/${id}`),
+  getProject: async (id: string) =>
+    await api.get<ApiResponse<IProject>>(`/projects/${id}`),
 
-  getProjectsByManager: async (managerId: string) => 
-    await api.get<ApiResponse<GetProjectsByManagerResponse>>(`/projects/manager/${managerId}`),
+  getProjectsByManager: async (managerId: string) =>
+    await api.get<ApiResponse<GetProjectsByManagerResponse>>(
+      `/projects/manager/${managerId}`
+    ),
+
+  getProjectAnalytics: async (projectId: string) =>
+    await api.get<ApiResponse<ProjectAnalyticsResponse>>(
+      `/projects/${projectId}/analytics`
+    ),
 
   createProject: async (projectData: CreateProjectRequest) =>
     await api.post<ApiResponse<IProject>>("/projects", projectData),
@@ -81,8 +99,13 @@ export const projectApi = {
   updateProject: async (id: string, projectData: UpdateProjectRequest) =>
     await api.patch<ApiResponse<IProject>>(`/projects/${id}`, projectData),
 
-  updateProjectStatus: async (id: string, status: 'active' | 'completed' | 'archived') =>
-    await api.patch<ApiResponse<IProject>>(`/projects/${id}/status`, { status }),
+  updateProjectStatus: async (
+    id: string,
+    status: "active" | "completed" | "archived"
+  ) =>
+    await api.patch<ApiResponse<IProject>>(`/projects/${id}/status`, {
+      status,
+    }),
 
   deleteProject: async (id: string) =>
     await api.delete<ApiResponse<null>>(`/projects/${id}`),
