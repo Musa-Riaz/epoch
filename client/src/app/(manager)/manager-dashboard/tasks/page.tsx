@@ -32,6 +32,7 @@ import {
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { IUser } from "../../../../../../server/src/infrastructure/database/models/user.model";
 import toast from "react-hot-toast";
+import { Label } from "@radix-ui/react-label";
 
 export default function ManagerTasks() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,13 +40,19 @@ export default function ManagerTasks() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [selectedProject, setSelectedProject] = useState<string>("all");
+  const [projectId, setProjectId] = useState<string>("");
+  const [priority, setPriority] = useState<string>("");
+  const [title, setTitle] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+
   const [taskAssignees, setTaskAssignees] = useState<Record<string, { firstName: string; lastName: string } | null>>({});
   const [members, setMembers] = useState<IUser[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string>("");
 
-  const { getTasksByProject, getTasks, tasks, getUserByTask, assignTask } = useTaskStore();
+  const { getTasksByProject, getTasks, tasks, getUserByTask, assignTask, createTask } = useTaskStore();
   const { getProjectsByManager, projects, getMembersByProject } = useProjectStore();
   const { user } = useAuthStore();
 
@@ -155,6 +162,39 @@ export default function ManagerTasks() {
     }
   };
 
+  const handleCreateTask =  async (e : React.FormEvent) => {
+    e.preventDefault();
+    try{
+     const res = await createTask({
+        title,
+        description,
+        projectId,
+        //@ts-expect-error too lazy to fix types
+        priority,
+        assignedTo: selectedMemberId || undefined,
+
+      })
+      if(res)
+      toast.success("Task created successfully");
+    // after creating task, refresh task list
+    if (selectedProject === "all") {
+      await getTasks();
+    } else if (selectedProject && selectedProject !== "all") {
+      await getTasksByProject(selectedProject);
+    }
+    // Reset form fields
+    setTitle("");
+    setDescription("");
+    setProjectId("");
+    setPriority("");
+    setSelectedMemberId("");
+    }
+    catch(err) {
+      console.error("Failed to create task:", err);
+      toast.error("Failed to create task");
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -224,11 +264,98 @@ export default function ManagerTasks() {
           </p>
         </div>
         <div className="flex flex-row gap-2">
-                  <Button className="gap-2">
-          <Plus className="w-4 h-4" />
-          Create Task
-        </Button>
-        <Select value={selectedProject} onValueChange={setSelectedProject}>
+          <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2" >
+                <Plus className="w-4 h-4" />
+                Create Task
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold ">Create New Task</DialogTitle>
+                <DialogDescription className="py-0">
+                  Fill in the details below to create a new task.
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Task creation form goes here */}  
+
+              <form className="space-y-4 ">
+                <div className="space-y-2 ">
+                  <Label className="text-lg font-semibold">Enter Title</Label>
+                  <Input type="text" placeholder="Task Title" value={title} onChange={(e)=>setTitle(e.target.value)} />
+                </div>
+                <div className="space-y-2 ">
+                  <Label className="text-lg font-semibold">Enter Description</Label>
+                  <Input type="text" placeholder="Task Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+                </div>
+                <div className="space-y-2 ">
+                  <Label className="text-lg font-semibold">Select the Project</Label>
+                  <Select value={projectId} onValueChange={setProjectId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select the Project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                     {projects.map((project) => (
+                      <SelectItem key={String(project._id)} value={String(project._id)}>
+                        {project.name}
+                      </SelectItem>
+                     ) )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 grid grid-cols-2 gap-2">
+                  <div className="w-full">
+                     <Label className="text-lg font-semibold">Select Team Member</Label>
+                        <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+                                <SelectTrigger className="w-full" >
+                                  <SelectValue placeholder="Select a team member"  />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {members?.map((member) => (
+                                    <SelectItem key={String(member._id)} value={String(member._id)}>
+                                      {member.firstName} {member.lastName}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                  </div>
+                  <div className="w-full">
+                          <Label className="text-lg font-semibold">Select Priority</Label>
+                        <Select value={priority} onValueChange={setPriority}>
+                                <SelectTrigger className="w-full" >
+                                  <SelectValue placeholder="Select a priority"  />
+                                </SelectTrigger>
+                                <SelectContent>
+                              <SelectItem value="high">High</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="low">Low</SelectItem>
+                                </SelectContent>
+                              </Select>
+                  </div>
+                 
+                </div>
+
+                <div className="w-full ">
+                  <div className="flex flex-row gap-2 justify-end mt-2">
+                     <DialogClose>
+                    <Button className="border hover:cursor-pointer" type="button" variant="secondary">Cancel</Button>
+                  </DialogClose>
+                  <Button type="submit" className="hover:cursor-pointer" onClick={(e)=> {
+                    handleCreateTask(e);
+                    setIsTaskDialogOpen(false);
+                  }}  disabled={!priority} >Create Task</Button>
+                  </div>
+                 
+                </div>
+                
+              </form>
+
+
+            </DialogContent>
+          </Dialog>
+          <Select value={selectedProject} onValueChange={setSelectedProject}>
           <SelectTrigger className="">
             <SelectValue placeholder="Filter by Project" />
           </SelectTrigger>
