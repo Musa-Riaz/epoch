@@ -38,6 +38,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth.store";
 import { use, useMemo } from "react";
 import { LucideIcon } from "lucide-react";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+
 
 type SidebarLink = {
   title: string;
@@ -137,8 +140,15 @@ const sidebarLinksAdmin: SidebarLink[] = [
 
 export function DashboardSidebar() {
   const userRole = useAuthStore((state) => state.user?.role);
-  const {user} = useAuthStore();
+  const {user, logout} = useAuthStore();
+  const router = useRouter();
   const pathname = usePathname();
+
+  const handleLogout = () => {
+    logout();
+    toast.success("Logged out successfully");
+    router.push("/login");
+  };
 
   // Use useMemo to calculate links based on role
   const links = useMemo(() => {
@@ -260,7 +270,7 @@ export function DashboardSidebar() {
                     <span>Settings</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
