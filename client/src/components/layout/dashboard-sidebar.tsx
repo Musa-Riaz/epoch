@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth.store";
-import { useMemo } from "react";
+import { use, useMemo } from "react";
 import { LucideIcon } from "lucide-react";
 
 type SidebarLink = {
@@ -137,6 +137,7 @@ const sidebarLinksAdmin: SidebarLink[] = [
 
 export function DashboardSidebar() {
   const userRole = useAuthStore((state) => state.user?.role);
+  const {user} = useAuthStore();
   const pathname = usePathname();
 
   // Use useMemo to calculate links based on role
@@ -231,13 +232,13 @@ export function DashboardSidebar() {
                   <Avatar className="h-8 w-8">
                     <AvatarImage src="" />
                     <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
-                      AA
+                      {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col gap-0.5 leading-none">
-                    <span className="font-semibold text-sm">Anima Agrawal</span>
+                    <span className="font-semibold text-sm">{user?.firstName} {user?.lastName}</span>
                     <span className="text-xs text-muted-foreground">
-                      {userRole || 'Member'}
+                      {userRole?.charAt(0).toUpperCase() + userRole?.slice(1) || 'Member'}
                     </span>
                   </div>
                   <ChevronUp className="ml-auto" />

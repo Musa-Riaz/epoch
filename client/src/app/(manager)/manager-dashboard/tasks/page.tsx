@@ -33,6 +33,17 @@ import { DialogTitle } from "@radix-ui/react-dialog";
 import { IUser } from "../../../../../../server/src/infrastructure/database/models/user.model";
 import toast from "react-hot-toast";
 import { Label } from "@radix-ui/react-label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export default function ManagerTasks() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -44,15 +55,17 @@ export default function ManagerTasks() {
   const [priority, setPriority] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
 
   const [taskAssignees, setTaskAssignees] = useState<Record<string, { firstName: string; lastName: string } | null>>({});
   const [members, setMembers] = useState<IUser[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string>("");
 
-  const { getTasksByProject, getTasks, tasks, getUserByTask, assignTask, createTask } = useTaskStore();
+  const { getTasksByProject, getTasks, tasks, getUserByTask, assignTask, createTask, updateTask, deleteTask } = useTaskStore();
   const { getProjectsByManager, projects, getMembersByProject } = useProjectStore();
   const { user } = useAuthStore();
 
@@ -188,10 +201,65 @@ export default function ManagerTasks() {
     setProjectId("");
     setPriority("");
     setSelectedMemberId("");
+    setStatus("");
     }
     catch(err) {
       console.error("Failed to create task:", err);
       toast.error("Failed to create task");
+    }
+  }
+
+  const handleUpdateTask = async (e: React.FormEvent, taskId: string) => {
+    e.preventDefault();
+    try{
+      const res = await updateTask(taskId, {
+        title,
+        description,
+        projectId,
+        //@ts-expect-error too lazy to fix types
+        priority,
+        assignedTo: selectedMemberId || undefined,
+        //@ts-expect-error too lazy to fix types
+        status
+      })
+      if(res)
+        toast.success('Task updated successfully');
+      if (selectedProject === "all") {
+      await getTasks();
+    } else if (selectedProject && selectedProject !== "all") {
+      await getTasksByProject(selectedProject);
+    }
+    // Reset form fields
+    setTitle("");
+    setDescription("");
+    setProjectId("");
+    setPriority("");
+    setSelectedMemberId("");
+    setStatus("");
+    }
+    catch(err){
+      console.log(err);
+      toast.error("Failed to update task");
+    }
+  }
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+     const res = await deleteTask(taskId);
+     if(res){
+        toast.success("Task deleted successfully");
+      // Refresh tasks to show updated list
+      if (selectedProject === "all") {
+        await getTasks();
+      } else {
+        await getTasksByProject(selectedProject);
+      }
+     }
+    
+    }
+    catch(err){
+      console.log(err);
+      toast.error("Failed to delete task");
     }
   }
 
@@ -335,6 +403,19 @@ export default function ManagerTasks() {
                               </Select>
                   </div>
                  
+                </div>
+                  <div className="space-y-2">
+                  <Label className="text-lg font-semibold">Select Status</Label>
+                  <Select value={status} onValueChange={setStatus}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todo">To Do</SelectItem>
+                      <SelectItem value="in-progress">In Progress</SelectItem>
+                      <SelectItem value="done">Done</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="w-full ">
@@ -504,9 +585,7 @@ export default function ManagerTasks() {
                         <span>Assigned To: 
                           {taskAssignees[String(task.assignedTo)] 
                             ? ` ${taskAssignees[String(task.assignedTo)]?.firstName} ${taskAssignees[String(task.assignedTo)]?.lastName}`
-                            : task.assignedTo 
-                              ? String(task.assignedTo)
-                              : 'Unassigned'
+                            : task.assignedTo === true ? 'Unassigned' : ' Loading...'
                           }
                         </span>
                       </div>
@@ -519,7 +598,125 @@ export default function ManagerTasks() {
                     </div>
 
                     <div className="flex gap-2 mt-4">
-                      <Button variant="outline" size="sm">Edit</Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant={"destructive"} size={'sm'}>Delete</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                                <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete your
+            account and remove your data from our servers.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+         <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={()=>handleDeleteTask(String(task?._id))}>Continue</AlertDialogAction>
+        </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      <Dialog open={isTaskDialogOpen && currentTaskId === String(task._id)} onOpenChange={(open) => {
+                        setIsTaskDialogOpen(open);
+                      }}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">Edit</Button>
+                        </DialogTrigger>
+                          <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle className="text-xl font-bold ">Update Task</DialogTitle>
+                            <DialogDescription>
+                              Edit Task Details.
+                            </DialogDescription>
+                          </DialogHeader>
+
+                      
+                    <form className="space-y-4 ">
+                <div className="space-y-2 ">
+                  <Label className="text-lg font-semibold">Update Title</Label>
+                  <Input type="text" placeholder={task?.title} value={title} onChange={(e)=>setTitle(e.target.value)} />
+                </div>
+                <div className="space-y-2 ">
+                  <Label className="text-lg font-semibold">Update Description</Label>
+                  <Input type="text" placeholder={task?.description} value={description} onChange={(e) => setDescription(e.target.value)} />
+                </div>
+                <div className="space-y-2 ">
+                  <Label className="text-lg font-semibold">Update the Project</Label>
+                  <Select value={projectId} onValueChange={setProjectId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select the Project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                     {projects.map((project) => (
+                      <SelectItem key={String(project._id)} value={String(project._id)}>
+                        {project.name}
+                      </SelectItem>
+                     ) )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 grid grid-cols-2 gap-2">
+                  <div className="w-full">
+                     <Label className="text-lg font-semibold">Select Team Member</Label>
+                        <Select value={String(task?.assignedTo)} onValueChange={setSelectedMemberId}>
+                                <SelectTrigger className="w-full" >
+                                  <SelectValue placeholder="Select a team member"  />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {members?.map((member) => (
+                                    <SelectItem key={String(member._id)} value={String(member._id)}>
+                                      {member.firstName} {member.lastName}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                  </div>
+                  <div className="w-full">
+                          <Label className="text-lg font-semibold">Select Priority</Label>
+                        <Select value={task?.priority} onValueChange={setPriority}>
+                                <SelectTrigger className="w-full" >
+                                  <SelectValue placeholder="Select a priority"  />
+                                </SelectTrigger>
+                                <SelectContent>
+                              <SelectItem value="high">High</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="low">Low</SelectItem>
+                                </SelectContent>
+                              </Select>
+                  </div>
+                 
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-lg font-semibold">Select Status</Label>
+                  <Select value={task.status} onValueChange={setStatus}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todo">To Do</SelectItem>
+                      <SelectItem value="in-progress">In Progress</SelectItem>
+                      <SelectItem value="done">Done</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="w-full ">
+                  <div className="flex flex-row gap-2 justify-end mt-2">
+                     <DialogClose>
+                    <Button className="border hover:cursor-pointer" type="button" variant="secondary">Cancel</Button>
+                  </DialogClose>
+                  <Button type="submit" className="hover:cursor-pointer" onClick={(e)=> {
+                    handleUpdateTask(e, String(task?._id));
+                    setIsTaskDialogOpen(false);
+                  }}   >Edit Task</Button>
+                  </div>
+                 
+                </div>
+                
+              </form>
+                        </DialogContent>
+                      
+                      </Dialog>
                       <Dialog open={isDialogOpen && currentTaskId === String(task._id)} onOpenChange={(open) => {
                         setIsDialogOpen(open);
                         if (open) {
@@ -594,3 +791,4 @@ export default function ManagerTasks() {
     </div>
   );
 }
+
