@@ -39,13 +39,7 @@ export default function Login() {
       }
 
     } catch (err: unknown) {
-      console.error(err);
-      if (err instanceof Error) {
-        const responseError = (err as any).response?.data?.error;
-        toast.error(responseError ?? err.message);
-      } else {
-        toast.error(String(err));
-      }
+      toast.error("Login failed. Please check your credentials.");
     }
   };
 

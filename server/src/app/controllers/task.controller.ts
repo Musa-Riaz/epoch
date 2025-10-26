@@ -54,6 +54,20 @@ export async function getTask(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function getTasksByAssignedUser(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const tasks = await Task.find({ assignedTo: id});
+    if(!tasks){
+      return sendError({ res, error: 'No tasks found for the user', status: 404 });
+    }
+    return sendSuccess({ res, data: tasks, status: 200, message: 'Tasks fetched by assigned user' });
+  }
+  catch(err) {
+    return sendError({ res, error: 'Failed to fetch tasks by assigned user', details: err as any, status: 500 });
+  }
+}
+
 // get user by their task assignment
 export async function getUserbyTask(req: Request, res: Response): Promise<void> {
   try{

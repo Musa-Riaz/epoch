@@ -62,7 +62,6 @@ export default function ManagerTasks() {
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string>("");
 
   const { getTasksByProject, getTasks, tasks, getUserByTask, assignTask, createTask, updateTask, deleteTask } = useTaskStore();

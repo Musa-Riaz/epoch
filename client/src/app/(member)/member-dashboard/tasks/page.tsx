@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,104 +24,18 @@ import {
   CheckCircle2,
   Circle
 } from "lucide-react";
-
-// Mock data - replace with actual API calls
-const mockTasks = [
-  {
-    id: 1,
-    title: "Implement user authentication",
-    description: "Add JWT-based authentication with refresh tokens",
-    status: "in-progress",
-    priority: "high",
-    dueDate: "2025-10-25",
-    project: "E-Commerce Platform",
-    assignedBy: "Sarah Johnson",
-    tags: ["backend", "security"]
-  },
-  {
-    id: 2,
-    title: "Design product listing page",
-    description: "Create responsive product grid with filters",
-    status: "todo",
-    priority: "high",
-    dueDate: "2025-10-28",
-    project: "E-Commerce Platform",
-    assignedBy: "Sarah Johnson",
-    tags: ["frontend", "ui/ux"]
-  },
-  {
-    id: 3,
-    title: "Setup database schema",
-    description: "Design and implement MongoDB collections",
-    status: "completed",
-    priority: "high",
-    dueDate: "2025-10-20",
-    project: "E-Commerce Platform",
-    assignedBy: "Sarah Johnson",
-    tags: ["database", "backend"]
-  },
-  {
-    id: 4,
-    title: "Create mobile mockups",
-    description: "Design high-fidelity mockups for mobile app",
-    status: "in-progress",
-    priority: "medium",
-    dueDate: "2025-11-05",
-    project: "Mobile App Redesign",
-    assignedBy: "Mike Chen",
-    tags: ["design", "mobile"]
-  },
-  {
-    id: 5,
-    title: "Write API documentation",
-    description: "Document all REST API endpoints",
-    status: "todo",
-    priority: "low",
-    dueDate: "2025-11-15",
-    project: "API Integration",
-    assignedBy: "David Kim",
-    tags: ["documentation"]
-  },
-  {
-    id: 6,
-    title: "Implement payment gateway",
-    description: "Integrate Stripe payment processing",
-    status: "completed",
-    priority: "high",
-    dueDate: "2025-10-18",
-    project: "API Integration",
-    assignedBy: "Sarah Johnson",
-    tags: ["backend", "payment"]
-  },
-  {
-    id: 7,
-    title: "Setup CI/CD pipeline",
-    description: "Configure automated testing and deployment",
-    status: "todo",
-    priority: "medium",
-    dueDate: "2025-11-01",
-    project: "Dashboard Analytics",
-    assignedBy: "David Kim",
-    tags: ["devops", "automation"]
-  },
-  {
-    id: 8,
-    title: "Performance optimization",
-    description: "Optimize database queries and API response times",
-    status: "in-progress",
-    priority: "medium",
-    dueDate: "2025-10-30",
-    project: "E-Commerce Platform",
-    assignedBy: "Sarah Johnson",
-    tags: ["backend", "performance"]
-  }
-];
+import { useTaskStore } from "@/stores/task.store";
+import { useProjectStore } from "@/stores/project.store";
+import { useAuthStore } from "@/stores/auth.store";
 
 export default function MyTasks() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
+  const {user} = useAuthStore();
+  const {getTasksByAssignedUser, tasks} = useTaskStore();
+  const { projects, getProjects }= useProjectStore();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -162,23 +76,47 @@ export default function MyTasks() {
     }
   };
 
-  const filteredTasks = mockTasks.filter(task => {
+
+  // fetch tasks on component mount
+  useEffect(() => {
+    const fetchTasks = async () => {
+      await getTasksByAssignedUser(String(user?._id));
+    };
+    fetchTasks();
+  }, [user]);
+
+  // fetch projects on component mount
+  useEffect(() => {
+    const fetchProjects = async () => {
+      await getProjects();
+    }
+    fetchProjects()
+  }, [])
+
+
+  const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          task.description.toLowerCase().includes(searchQuery.toLowerCase());
+                          task?.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = selectedTab === "all" || task.status === selectedTab;
     const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter;
-    const matchesProject = projectFilter === "all" || task.project === projectFilter;
+    const matchesProject = projectFilter === "all" || task?.projectId === projectFilter;
     return matchesSearch && matchesTab && matchesPriority && matchesProject;
   });
 
   const stats = {
-    total: mockTasks.length,
-    todo: mockTasks.filter(t => t.status === "todo").length,
-    inProgress: mockTasks.filter(t => t.status === "in-progress").length,
-    completed: mockTasks.filter(t => t.status === "completed").length
+    total: tasks.length,
+    todo: tasks.filter(t => t.status === "todo").length,
+    inProgress: tasks.filter(t => t.status === "in-progress").length,
+    done: tasks.filter(t => t.status === "done").length
   };
 
-  const projects = Array.from(new Set(mockTasks.map(t => t.project)));
+// filter the projects on which the user is a part of the team
+const userProjects = projects.filter((project) => project.team.includes(String(user?._id)));
+
+const handleGetProjectName = (projectId: string) => {
+  const project = projects.find((proj) => proj._id === projectId);
+  return project ? project.name : "Unknown Project";
+}
 
   return (
     <div className="space-y-6">
@@ -190,10 +128,10 @@ export default function MyTasks() {
             Track and manage all your assigned tasks
           </p>
         </div>
-        <Button className="gap-2">
+        {/* <Button className="gap-2">
           <Plus className="w-4 h-4" />
           Create Task
-        </Button>
+        </Button> */}
       </div>
 
       {/* Stats Cards */}
@@ -235,7 +173,7 @@ export default function MyTasks() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">{stats.completed}</div>
+            <div className="text-2xl font-bold text-green-500">{stats?.done}</div>
           </CardContent>
         </Card>
       </div>
@@ -268,9 +206,9 @@ export default function MyTasks() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Projects</SelectItem>
-            {projects.map((project) => (
-              <SelectItem key={project} value={project}>
-                {project}
+            {userProjects.map((project) => (
+              <SelectItem key={project?._id} value={project?._id}>
+                {project?.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -283,13 +221,13 @@ export default function MyTasks() {
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="todo">To Do</TabsTrigger>
           <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="done">Done</TabsTrigger>
         </TabsList>
 
         <TabsContent value={selectedTab} className="mt-6">
           <div className="space-y-4">
             {filteredTasks.map((task) => (
-              <Card key={task.id} className="hover:shadow-lg transition-shadow">
+              <Card key={task._id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start gap-4">
                     <div className="pt-1">
@@ -311,24 +249,26 @@ export default function MyTasks() {
                           {task.status.replace("-", " ")}
                         </Badge>
                         <Badge variant="outline">{task.priority} priority</Badge>
-                        {task.tags.map((tag) => (
+                        {/* {task?.tags?.map((tag) => (
                           <Badge key={tag} variant="secondary">
                             {tag}
                           </Badge>
-                        ))}
+                        ))} */}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <CheckSquare className="w-4 h-4" />
-                          <span>{task.project}</span>
+                          <span>{task.title}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
-                          <span>Due: {new Date(task.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}</span>
+                          <span>Due: { task.dueDate ? (
+                            new Date(task?.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })
+                          ) : ("N/A") }</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span>Assigned by: {task.assignedBy}</span>
+                          <span>Project: {handleGetProjectName(String(task?.projectId))}</span>
                         </div>
                       </div>
 

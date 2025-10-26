@@ -64,6 +64,8 @@ export const taskApi = {
   getTasksByProject: async (projectId: string) =>
     await api.get<ApiResponse<ITask[]>>(`/tasks/project/${projectId}`),
 
+  getTasksByAssignedUser: async (userId: string) => await api.get<ApiResponse<ITask[]>>(`/tasks/assigned/${userId}`),
+
   getUserByTask: async (taskId: string) => await api.get<ApiResponse<IUserResponse>>(`/tasks/user/${taskId}`),
   
   createTask: async (taskData: CreateTaskRequest) =>

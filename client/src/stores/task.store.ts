@@ -18,6 +18,7 @@ interface TaskActions {
     deleteTask: (id: string) => Promise<boolean>;
     getTasks: () => Promise<ITask[] | null>;
     getTasksByProject: (projectId: string) => Promise<ITask[] | null>;
+    getTasksByAssignedUser: (userId: string) => Promise<ITask[] | null>;
     getUserByTask: (taskId: string) => Promise<any | null>;
     assignTask: (taskId: string, memberId: string) => Promise<ITask | null>;
 }
@@ -96,7 +97,18 @@ export const useTaskStore = create<TaskState & TaskActions>()(
                         return null;
                     }
                 },
-                getUserByTask: async (taskId : string) => {
+                getTasksByAssignedUser: async (userId: string) => {
+                    set({ isLoading: true });
+                    try {
+                        const response = (await taskApi.getTasksByAssignedUser(userId)).data.data;
+                        set({ tasks: response, isLoading: false });
+                        return response;
+                    } catch (error) {
+                        set({ error: getErrorMessage(error), isLoading: false });
+                        return null;
+                    }
+                },
+                getUserByTask: async (taskId: string) => {
                     set({ isLoading: true });
                     try {
 
