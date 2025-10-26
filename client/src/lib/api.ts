@@ -99,6 +99,8 @@ export const projectApi = {
       `/projects/members/${projectId}/projects`
     ),
 
+    getManagerByProject: async (ownerId: string) => await api.get<ApiResponse<IUserResponse>>(`/projects/manager/${ownerId}/projects`),
+
   createProject: async (projectData: CreateProjectRequest) =>
     await api.post<ApiResponse<IProject>>("/projects", projectData),
 

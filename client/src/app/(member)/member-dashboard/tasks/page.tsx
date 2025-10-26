@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/select";
 import { 
   CheckSquare, 
-  Plus, 
   Search, 
   Calendar,
   Clock,
@@ -65,7 +64,7 @@ export default function MyTasks() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "completed":
+      case "done":
         return <CheckCircle2 className="w-5 h-5 text-green-500" />;
       case "in-progress":
         return <Clock className="w-5 h-5 text-blue-500" />;
@@ -83,7 +82,7 @@ export default function MyTasks() {
       await getTasksByAssignedUser(String(user?._id));
     };
     fetchTasks();
-  }, [user]);
+  }, [user, getTasksByAssignedUser]);
 
   // fetch projects on component mount
   useEffect(() => {
@@ -91,7 +90,7 @@ export default function MyTasks() {
       await getProjects();
     }
     fetchProjects()
-  }, [])
+  }, [getProjects])
 
 
   const filteredTasks = tasks.filter(task => {
@@ -99,7 +98,7 @@ export default function MyTasks() {
                           task?.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = selectedTab === "all" || task.status === selectedTab;
     const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter;
-    const matchesProject = projectFilter === "all" || task?.projectId === projectFilter;
+    const matchesProject = projectFilter === "all" || String(task?.projectId) === projectFilter;
     return matchesSearch && matchesTab && matchesPriority && matchesProject;
   });
 
@@ -111,7 +110,9 @@ export default function MyTasks() {
   };
 
 // filter the projects on which the user is a part of the team
-const userProjects = projects.filter((project) => project.team.includes(String(user?._id)));
+const userProjects = projects.filter((project) => 
+  project.team.some((teamMember) => String(teamMember) === String(user?._id))
+);
 
 const handleGetProjectName = (projectId: string) => {
   const project = projects.find((proj) => proj._id === projectId);
@@ -207,7 +208,7 @@ const handleGetProjectName = (projectId: string) => {
           <SelectContent>
             <SelectItem value="all">All Projects</SelectItem>
             {userProjects.map((project) => (
-              <SelectItem key={project?._id} value={project?._id}>
+              <SelectItem key={String(project?._id)} value={String(project?._id)}>
                 {project?.name}
               </SelectItem>
             ))}
@@ -227,7 +228,7 @@ const handleGetProjectName = (projectId: string) => {
         <TabsContent value={selectedTab} className="mt-6">
           <div className="space-y-4">
             {filteredTasks.map((task) => (
-              <Card key={task._id} className="hover:shadow-lg transition-shadow">
+              <Card key={String(task._id)} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start gap-4">
                     <div className="pt-1">
@@ -274,7 +275,7 @@ const handleGetProjectName = (projectId: string) => {
 
                       <div className="flex gap-2 mt-4">
                         <Button variant="outline" size="sm">View Details</Button>
-                        {task.status !== "completed" && (
+                        {task.status !== "done" && (
                           <Button size="sm">
                             {task.status === "todo" ? "Start Task" : "Mark Complete"}
                           </Button>

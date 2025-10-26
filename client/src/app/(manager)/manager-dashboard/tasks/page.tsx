@@ -290,7 +290,7 @@ export default function ManagerTasks() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "completed":
+      case "done":
         return <CheckCircle2 className="w-5 h-5 text-green-500" />;
       case "in-progress":
         return <Clock className="w-5 h-5 text-blue-500" />;

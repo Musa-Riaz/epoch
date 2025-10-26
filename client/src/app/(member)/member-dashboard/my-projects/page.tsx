@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuthStore } from "@/stores/auth.store";
+import { useProjectStore } from "@/stores/project.store";
+import { ProjectAnalyticsResponse } from "@/interfaces/api";
 import { 
   FolderKanban, 
   Plus, 
@@ -17,65 +20,67 @@ import {
   AlertCircle
 } from "lucide-react";
 
-// Mock data - replace with actual API calls
-const mockProjects = [
-  {
-    id: 1,
-    name: "E-Commerce Platform",
-    description: "Building a scalable e-commerce platform with Next.js",
-    status: "in-progress",
-    progress: 65,
-    dueDate: "2025-11-15",
-    teamSize: 5,
-    tasksCompleted: 23,
-    totalTasks: 35,
-    priority: "high",
-    manager: "Sarah Johnson"
-  },
-  {
-    id: 2,
-    name: "Mobile App Redesign",
-    description: "Complete UI/UX overhaul of the mobile application",
-    status: "in-progress",
-    progress: 40,
-    dueDate: "2025-12-01",
-    teamSize: 4,
-    tasksCompleted: 12,
-    totalTasks: 30,
-    priority: "medium",
-    manager: "Mike Chen"
-  },
-  {
-    id: 3,
-    name: "API Integration",
-    description: "Integrate third-party payment and shipping APIs",
-    status: "completed",
-    progress: 100,
-    dueDate: "2025-10-20",
-    teamSize: 3,
-    tasksCompleted: 18,
-    totalTasks: 18,
-    priority: "high",
-    manager: "Sarah Johnson"
-  },
-  {
-    id: 4,
-    name: "Dashboard Analytics",
-    description: "Create comprehensive analytics dashboard",
-    status: "planning",
-    progress: 10,
-    dueDate: "2026-01-10",
-    teamSize: 4,
-    tasksCompleted: 2,
-    totalTasks: 25,
-    priority: "low",
-    manager: "David Kim"
-  }
-];
-
 export default function MyProjects() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("all");
+  const [analytics, setAnalytics] = useState<Record<string, ProjectAnalyticsResponse>>({});
+  const [managerNames, setManagerNames] = useState<Record<string, string>>({});
+  const { user } = useAuthStore();
+  const { projects, getProjects, getProjectAnalytics, getManagerByProject } = useProjectStore();
+
+  // fetch projects on component mount 
+  useEffect(() => {
+    const fetchProjects = async () => {
+      await getProjects();
+    }
+    fetchProjects();
+  }, [getProjects]);
+
+  // fetch project analytics and manager names when projects change
+  useEffect(() => {
+    const fetchProjectData = async () => {
+      if (projects.length === 0) return;
+      
+      const analyticsData: Record<string, ProjectAnalyticsResponse> = {};
+      const managersData: Record<string, string> = {};
+      
+      for (const project of projects) {
+        try {
+          // Fetch analytics
+          const analytics = await getProjectAnalytics(String(project._id));
+          if (analytics) {
+            analyticsData[String(project._id)] = analytics as ProjectAnalyticsResponse;
+          }
+          
+          // Fetch manager name
+          const managerData = await getManagerByProject(String(project.owner));
+          // If managerData is an IUser object, extract the name; otherwise use it as string
+          interface UserData {
+            firstName?: string;
+            lastName?: string;
+          }
+          const managerName = typeof managerData === 'object' && managerData !== null 
+            ? `${(managerData as UserData).firstName || ''} ${(managerData as UserData).lastName || ''}`.trim()
+            : String(managerData || 'Unknown');
+          managersData[String(project.owner)] = managerName;
+        } catch (err) {
+          console.error('Error fetching project data:', err);
+        }
+      }
+      
+      setAnalytics(analyticsData);
+      setManagerNames(managersData);
+      console.log('Analytics:', analyticsData);
+      console.log('Managers:', managersData);
+    }
+    
+    fetchProjectData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects.length]);
+
+  const userProjects = projects.filter((project) => 
+    project.team.some((teamMember) => String(teamMember) === String(user?._id))
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -90,20 +95,7 @@ export default function MyProjects() {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "bg-red-500/10 text-red-500 border-red-500/20";
-      case "medium":
-        return "bg-orange-500/10 text-orange-500 border-orange-500/20";
-      case "low":
-        return "bg-green-500/10 text-green-500 border-green-500/20";
-      default:
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
-    }
-  };
-
-  const filteredProjects = mockProjects.filter(project => {
+  const filteredProjects = userProjects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           project.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = selectedTab === "all" || project.status === selectedTab;
@@ -111,10 +103,9 @@ export default function MyProjects() {
   });
 
   const stats = {
-    total: mockProjects.length,
-    active: mockProjects.filter(p => p.status === "in-progress").length,
-    completed: mockProjects.filter(p => p.status === "completed").length,
-    planning: mockProjects.filter(p => p.status === "planning").length
+    total: userProjects.length,
+    active: userProjects.filter(p => p?.status === "active").length,
+    completed: userProjects.filter(p => p?.status === "completed").length,
   };
 
   return (
@@ -134,7 +125,7 @@ export default function MyProjects() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -165,16 +156,7 @@ export default function MyProjects() {
             <div className="text-2xl font-bold text-green-500">{stats.completed}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Planning
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">{stats.planning}</div>
-          </CardContent>
-        </Card>
+     
       </div>
 
       {/* Search and Filter */}
@@ -221,9 +203,6 @@ export default function MyProjects() {
                     <Badge variant="outline" className={getStatusColor(project.status)}>
                       {project.status.replace("-", " ")}
                     </Badge>
-                    <Badge variant="outline" className={getPriorityColor(project.priority)}>
-                      {project.priority}
-                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -231,9 +210,9 @@ export default function MyProjects() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Progress</span>
-                      <span className="font-medium">{project.progress}%</span>
+                      <span className="font-medium">{project.progress || 0}%</span>
                     </div>
-                    <Progress value={project.progress} />
+                    <Progress value={project.progress || 0} />
                   </div>
 
                   {/* Stats */}
@@ -242,25 +221,31 @@ export default function MyProjects() {
                       <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Tasks:</span>
                       <span className="font-medium">
-                        {project.tasksCompleted}/{project.totalTasks}
+                        {analytics[String(project._id)]?.completedTasks || 0}/
+                        {analytics[String(project._id)]?.totalTasks || 0}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <Users className="w-4 h-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Team:</span>
-                      <span className="font-medium">{project.teamSize}</span>
+                      <span className="font-medium">{project.team?.length || 0}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Due:</span>
+                      <span className="text-muted-foreground">Deadline:</span>
                       <span className="font-medium">
-                        {new Date(project.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                        {project?.deadline 
+                          ? new Date(project.deadline).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })
+                          : 'N/A'
+                        }
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <Users className="w-4 h-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Manager:</span>
-                      <span className="font-medium truncate">{project.manager.split(" ")[0]}</span>
+                      <span className="font-medium truncate">
+                        {managerNames[String(project?.owner)] || 'Loading...'}
+                      </span>
                     </div>
                   </div>
 

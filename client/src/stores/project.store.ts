@@ -24,6 +24,7 @@ interface ProjectActions {
   setCurrentProject: (project: IProject | null) => void;
   clearError: () => void;
   getMembersByProject: (projectId: string) => Promise<IUser[] | void>;
+  getManagerByProject: (ownerId: string) =>  Promise<IUser | null>;
 }
 
 type ProjectStore = ProjectState & ProjectActions;
@@ -91,6 +92,18 @@ export const useProjectStore = create<ProjectStore>()(
             set({ isLoading: false });
             return response.data.data;
 
+          } catch (err) {
+            set({ error: getErrorMessage(err), isLoading: false });
+            return null;
+          }
+        },
+
+        getManagerByProject: async (ownerId: string) => {
+          set({ isLoading: true, error: null });
+          try {
+            const response = await projectApi.getManagerByProject(ownerId);
+            set({ isLoading: false });
+            return response.data.data;
           } catch (err) {
             set({ error: getErrorMessage(err), isLoading: false });
             return null;

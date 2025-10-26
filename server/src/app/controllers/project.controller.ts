@@ -110,6 +110,23 @@ export async function getMembersByProject(req: Request, res: Response): Promise<
   }
 }
 
+export async function getManagerByProject(req: Request, res: Response): Promise<void>{
+  try{
+
+    const { id }= req.params;
+
+    const manager = await User.findById(id);
+    if(!manager){
+      return sendError({ res, error: 'Manager not found', status: 404 });
+    }
+    return sendSuccess({ res, data: manager, status: 200, message: 'Manager fetched successfully' });
+
+  }
+  catch(err){
+    return sendError({ res, error: 'Failed to get manager by project', details: err as any, status: 500 });
+  }
+}
+
 export async function updateProject(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;

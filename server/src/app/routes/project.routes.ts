@@ -21,6 +21,7 @@ router.get('/:id', authMiddleware, getProjectById);
 router.get('/manager/:id', authMiddleware, getProjectsByManager);
 router.get('/:id/analytics', authMiddleware, getProjectAnalytics);
 router.get('/members/:id/projects', authMiddleware, getMembersByProject);
+router.get('/manager/:id/projects', authMiddleware, getProjectsByManager);
 router.patch('/:id', authMiddleware, updateProject);
 router.patch('/:id/status', authMiddleware, updateProjectStatus);
 router.delete('/:id', authMiddleware, deleteProject);
