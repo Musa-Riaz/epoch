@@ -67,7 +67,7 @@ const MemberDashboard = () => {
 
   
   const [tasks, setTasks] = useState<Task[]>([]);
-  const { getTasks, getTasksByProject } = useTaskStore();
+  const { getTasksByProject, getTasksByAssignedUser } = useTaskStore();
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const {projects, getProjectsByMember} = useProjectStore();
   const { user } = useAuthStore();
@@ -96,7 +96,8 @@ const MemberDashboard = () => {
         try{
 
           if(selectedProject === 'all'){
-            const res = await getTasks();
+            // Fetch only tasks assigned to this user
+            const res = await getTasksByAssignedUser(String(user?._id));
             if(res){
             // Map ITaskResponse[] to Task[] format
             const mappedTasks: Task[] = res.map((taskResponse) => {
@@ -138,7 +139,7 @@ const MemberDashboard = () => {
         }
       }
       fetchTasks();
-    }, [selectedProject, getTasks, getTasksByProject]);
+    }, [selectedProject, getTasksByProject, getTasksByAssignedUser, user?._id]);
 
     const [activeTask, setActiveTask] = useState<Task | null>(null);
     const [title, setTitle] = useState('');
