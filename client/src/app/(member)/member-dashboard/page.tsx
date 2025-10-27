@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,6 +38,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { DialogClose } from "@radix-ui/react-dialog";
 import { useTaskStore } from "@/stores/task.store";
 import { toast } from "react-hot-toast";
+import { useProjectStore } from "@/stores/project.store";
+import { useAuthStore } from "@/stores/auth.store";
+import { SelectValue } from "@radix-ui/react-select";
 
 type Task = {
     id: string;
@@ -65,16 +67,37 @@ const MemberDashboard = () => {
 
   
   const [tasks, setTasks] = useState<Task[]>([]);
-  const { getTasks } = useTaskStore();
+  const { getTasks, getTasksByProject } = useTaskStore();
+  const [selectedProject, setSelectedProject] = useState<string>('all');
+  const {projects, getProjectsByMember} = useProjectStore();
+  const { user } = useAuthStore();
 
     // calling useEffect, fetching tasks from getTasks, and setting tasks
     // TODO: fetch the tasks according to the specific project id
+
+    // fetching the prijects of which the user is a part of 
+    useEffect(() => {
+
+      const fetchProjects = async () => {
+        try{
+          await getProjectsByMember(String(user?._id));
+        }
+        catch(err){
+          console.log(err);
+        }
+      }
+      fetchProjects();
+
+    }, [user?._id, getProjectsByMember]);
+
     useEffect(() => {
   async function fetchTasks(){
 
         try{
-          const res = await getTasks();
-          if(res){
+
+          if(selectedProject === 'all'){
+            const res = await getTasks();
+            if(res){
             // Map ITaskResponse[] to Task[] format
             const mappedTasks: Task[] = res.map((taskResponse) => {
               const task = taskResponse;
@@ -89,6 +112,25 @@ const MemberDashboard = () => {
             });
             setTasks(mappedTasks);
           }
+          }
+
+          else {
+            const res = await getTasksByProject(String(selectedProject));
+            if(res){
+              const mappedTasks: Task[] = res.map((taskResponse) => {
+                const task = taskResponse;
+
+                return {
+                  id: String(task._id),
+                  priority: task.priority,
+                  title: task.title,
+                  description: task.description || '',
+                  status: task.status === 'in-progress' ? 'inProgress' : task.status as 'todo' | 'done',
+                };
+              });
+              setTasks(mappedTasks);
+            }
+          }
         }
         catch(err){
           console.log(err)
@@ -96,7 +138,7 @@ const MemberDashboard = () => {
         }
       }
       fetchTasks();
-    }, [getTasks]);
+    }, [selectedProject, getTasks, getTasksByProject]);
 
     const [activeTask, setActiveTask] = useState<Task | null>(null);
     const [title, setTitle] = useState('');
@@ -302,7 +344,26 @@ const MemberDashboard = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Mobile App</h1>
+            <Select value={selectedProject} onValueChange={setSelectedProject}>
+              <SelectTrigger className=" border-none py-8" >
+                <SelectValue placeholder="Select Project" >
+                  <h1 className="text-3xl font-bold p-2">
+                  {selectedProject === 'all' 
+                    ? 'All Projects' 
+                    : projects.find(p => String(p._id) === selectedProject)?.name || 'Select Project'
+                  }
+                  </h1>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Projects</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={String(project._id)} value={String(project._id)}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <p className="text-muted-foreground mt-1">
               Track and manage your project tasks
             </p>

@@ -90,6 +90,8 @@ export const projectApi = {
       `/projects/manager/${managerId}`
     ),
 
+    getProjectsByMember: async (userId: string) => await api.get<ApiResponse<IProject[]>>(`/projects/member/${userId}/projects`),
+
   getProjectAnalytics: async (projectId: string) =>
     await api.get<ApiResponse<ProjectAnalyticsResponse>>(
       `/projects/${projectId}/analytics`

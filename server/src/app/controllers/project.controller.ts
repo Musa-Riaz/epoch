@@ -53,6 +53,26 @@ export async function getProjectsByManager(req: Request, res: Response): Promise
   }
 }
 
+// get projects of which the member is a part of 
+export async function getProjectsByMember(req: Request, res: Response): Promise<void> {
+  try{
+    const { userId } = req.params;
+    const member = await User.findById(userId);
+    if(!member){
+      return sendError({ res, error: 'Member not found', status: 404 });
+    }
+    const projects = await Project.find({ team: userId});
+    if(projects.length === 0){
+      return sendSuccess({ res, data: [], status: 200, message: 'No projects found for this member' });
+    }
+    return sendSuccess({ res, data: projects, status: 200, message: 'Projects fetched successfully' });
+
+  }
+  catch(err){
+    return sendError({ res, error: 'Failed to fetch projects by member', details: err as any, status: 500 });
+  }
+}
+
 // Get projects analytics
 
 export async function getProjectAnalytics(req: Request, res: Response) : Promise<void> {

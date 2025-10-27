@@ -16,6 +16,7 @@ interface ProjectActions {
   getProjects: () => Promise<void>;
   getProject: (id: string) => Promise<IProject | null>;
   getProjectsByManager: (managerId: string) => Promise<void>;
+  getProjectsByMember: (userId: string) => Promise<void>;
   getProjectAnalytics: (projectId: string) => Promise<ProjectAnalyticsResponse | void>;
   createProject: (projectData: CreateProjectRequest) => Promise<IProject | null>;
   updateProject: (id: string, projectData: UpdateProjectRequest) => Promise<IProject | null>;
@@ -72,6 +73,16 @@ export const useProjectStore = create<ProjectStore>()(
             set({ error: getErrorMessage(err), isLoading: false });
           }
         },
+
+        getProjectsByMember: async (userId: string) => {
+          set({ isLoading: true, error: null });
+          try {
+            const response = await projectApi.getProjectsByMember(userId);
+            set({ projects: response.data.data, isLoading: false });
+          } catch (err) {
+            set({ error: getErrorMessage(err), isLoading: false });
+          }
+        },  
 
         getProjectAnalytics: async (projectId: string) => {
           set({ isLoading: true, error: null });
