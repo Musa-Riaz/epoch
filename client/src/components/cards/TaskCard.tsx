@@ -31,7 +31,7 @@ const TaskCard = ({id, priority, title, description}: TaskCardProps) => {
          ref={setNodeRef} 
          {...attributes} 
          {...listeners} 
-         style={style} 
+         style={style}   
          className={`hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing ${priority === 'high' ? 'border-red-500' : priority === 'medium' ? 'border-yellow-500' : 'border-green-500'}`}
        >
                 <CardHeader className="pb-3 ">
