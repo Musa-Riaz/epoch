@@ -3,6 +3,7 @@ import { sendSuccess, sendError } from '../utils/api';
 import {IUser, User} from '../../infrastructure/database/models/user.model';
 import { hashPassword, comparePassword } from '../utils/hash.util';
 import { issueToken } from '../utils/token.util';
+import Project from '../../infrastructure/database/models/project.model';
 
 
 export async function signup(req: Request, res: Response): Promise<void>{
@@ -75,6 +76,8 @@ export async function login(req: Request, res: Response): Promise<void> {
             role: user.role
         })
 
+        
+
         return sendSuccess({
             res,
             data: {user: userObj, accessToken: token},
@@ -128,7 +131,7 @@ export async function getUserById(req: Request, res: Response) : Promise<void> {
         }
         const userObj = user.toObject();
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete (userObj as any).password;
+            delete (userObj as any).password;
 
         return sendSuccess({
             res,
@@ -159,3 +162,37 @@ export async function getAllUsers(req: Request, res: Response) : Promise<void> {
         return sendError({res, error: 'Failed to get users', details: err as any, status: 500});
     }
 }
+
+// Get analytics of a particular manager
+export async function getManagerAnalytics(req: Request, res: Response) : Promise<void>{
+  try{
+
+    const managerId = req.params.id; // Get the id from params
+    const manager = await User.findById(managerId);
+    if(!manager || manager.role !== 'manager'){
+        return sendError({ res, error: 'Manager not found', status: 404 });
+    } 
+    // get all projects managed by this manager
+    const projects = await Project.find({ owner: managerId });
+    const totalMembers = projects.reduce((sum, project) => sum + (project.team?.length || 0), 0);
+    
+    return sendSuccess({ 
+      res, 
+      data: { 
+        totalProjects: projects.length, 
+        totalMembers: totalMembers,
+        projects: projects.map(p => ({
+          ...p.toObject?.() || p,
+          teamSize: p.team?.length || 0
+        }))
+      }, 
+      status: 200, 
+      message: 'Projects fetched successfully' 
+    });
+  }
+  catch(err){
+    return sendError({ res, error: 'Failed to fetch projects by manager', details: err as any, status: 500 });
+  }
+}
+
+

@@ -7,7 +7,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction)=
         // extract the token from the authorization header
         const token = extractToken(req.headers.authorization);
         if(!token){
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(401).json({ message: 'Unauthorized. Kindly login to access this resource.' });
         }
 
         // verify the access token

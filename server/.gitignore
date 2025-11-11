@@ -40,3 +40,4 @@ coverage/
 # Misc
 *.tgz
 .nyc_output/
+.vercel
