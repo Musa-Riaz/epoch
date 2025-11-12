@@ -10,6 +10,10 @@ import teamRoutes from './app/routes/team.routes';
 import cors from 'cors'
 import morgan from 'morgan'
 import http from 'http'
+import mongoose from 'mongoose'
+
+// Load environment variables
+dotenv.config()
 
 const app = express()
 
@@ -22,8 +26,25 @@ const io = new SocketIOServer(server, {
   },
 });
 
+// MongoDB connection handler for serverless
+let isConnected = false;
+
+export const connectDB = async () => {
+  if (isConnected) {
+    return;
+  }
+  
+  try {
+    await mongoose.connect(process.env.MONGO_URI || '');
+    isConnected = true;
+    console.log('MongoDB connected');
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
+};
+
 // middlewares 
-dotenv.config()
 app.use(cors({
   origin: process.env.CORS_ORIGIN || "http://localhost:3000",
   credentials: true,
@@ -33,6 +54,16 @@ app.use(cors({
 app.use(morgan('dev'))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
+
+// Connect to DB before handling requests (for Vercel)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.use('/get', ()=> {
   console.log("Get request received");
