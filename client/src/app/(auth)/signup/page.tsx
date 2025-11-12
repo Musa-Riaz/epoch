@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Layers, Users, TrendingUp, Zap } from "lucide-react";
+import { CheckCircle2, Layers, Users, TrendingUp, Zap, Eye } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -49,6 +49,8 @@ export default function SignUp() {
       [e.target.id]: e.target.value,
     });
   };
+
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="min-h-screen flex">
@@ -170,34 +172,36 @@ export default function SignUp() {
                     className="h-11"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                   <Label htmlFor="password">Password</Label>
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" :"password"}
                     placeholder="Create a strong password"
                     value={formData.password}
                     onChange={handleChange}
                     required
                     className="h-11"
                   />
+                  <Eye className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 -translate-y-2 hover:cursor-pointer" onClick={()=>setShowPassword(!showPassword)} />
                   <p className="text-xs text-gray-500">
                     Must be at least 8 characters long
                   </p>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
                   <Input
                     id="confirmPassword"
-                    type="password"
+                    type={showPassword ? "text" :"password"}
                     placeholder="Confirm your password"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     required
                     className="h-11"
                   />
+                  <Eye className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1 hover:cursor-pointer" onClick={()=>setShowPassword(!showPassword)} />
                 </div>
-                <Button type="submit" className="w-full h-11 text-base hover:cursor-pointer" variant={'vibrant'}  size="lg">
+                <Button type="submit" className="w-full h-11 text-base hover:cursor-pointer" variant={'default'}  size="lg">
                   Create account
                 </Button>
               </form>

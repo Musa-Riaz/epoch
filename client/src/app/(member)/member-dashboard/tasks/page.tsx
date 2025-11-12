@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StatsCardSkeleton, TaskDetailSkeleton } from "@/components/ui/skeleton-loaders";
 import {
   Select,
   SelectContent,
@@ -19,7 +20,6 @@ import {
   Calendar,
   Clock,
   Flag,
-  AlertCircle,
   CheckCircle2,
   Circle
 } from "lucide-react";
@@ -32,6 +32,8 @@ export default function MyTasks() {
   const [selectedTab, setSelectedTab] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
+  const [isLoadingTasks, setIsLoadingTasks] = useState(true);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const {user} = useAuthStore();
   const {getTasksByAssignedUser, tasks} = useTaskStore();
   const { projects, getProjects }= useProjectStore();
@@ -79,7 +81,12 @@ export default function MyTasks() {
   // fetch tasks on component mount
   useEffect(() => {
     const fetchTasks = async () => {
-      await getTasksByAssignedUser(String(user?._id));
+      setIsLoadingTasks(true);
+      try {
+        await getTasksByAssignedUser(String(user?._id));
+      } finally {
+        setIsLoadingTasks(false);
+      }
     };
     fetchTasks();
   }, [user, getTasksByAssignedUser]);
@@ -87,7 +94,12 @@ export default function MyTasks() {
   // fetch projects on component mount
   useEffect(() => {
     const fetchProjects = async () => {
-      await getProjects();
+      setIsLoadingProjects(true);
+      try {
+        await getProjects();
+      } finally {
+        setIsLoadingProjects(false);
+      }
     }
     fetchProjects()
   }, [getProjects])
@@ -137,46 +149,56 @@ const handleGetProjectName = (projectId: string) => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Tasks
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              To Do
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">{stats.todo}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              In Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-500">{stats.inProgress}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Completed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500">{stats?.done}</div>
-          </CardContent>
-        </Card>
+        {isLoadingTasks ? (
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <StatsCardSkeleton key={i} />
+            ))}
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Tasks
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.total}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  To Do
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-500">{stats.todo}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  In Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-500">{stats.inProgress}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Completed
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-500">{stats?.done}</div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Filters */}
@@ -227,7 +249,20 @@ const handleGetProjectName = (projectId: string) => {
 
         <TabsContent value={selectedTab} className="mt-6">
           <div className="space-y-4">
-            {filteredTasks.map((task) => (
+            {isLoadingTasks ? (
+              <>
+                {[1, 2, 3, 4].map((i) => (
+                  <TaskDetailSkeleton key={i} />
+                ))}
+              </>
+            ) : filteredTasks.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <p className="text-muted-foreground">No tasks found</p>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredTasks.map((task) => (
               <Card key={String(task._id)} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start gap-4">
@@ -285,18 +320,9 @@ const handleGetProjectName = (projectId: string) => {
                   </div>
                 </CardHeader>
               </Card>
-            ))}
+              ))
+            )}
           </div>
-
-          {filteredTasks.length === 0 && (
-            <div className="text-center py-12">
-              <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No tasks found</h3>
-              <p className="text-muted-foreground">
-                {searchQuery ? "Try adjusting your filters" : "You don't have any tasks yet"}
-              </p>
-            </div>
-          )}
         </TabsContent>
       </Tabs>
     </div>

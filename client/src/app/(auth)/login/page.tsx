@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Layers, Users, TrendingUp } from "lucide-react";
+import { CheckCircle2, Layers, Users, TrendingUp, Eye } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
 
   const { login } = useAuthStore();
 
@@ -124,7 +125,7 @@ export default function Login() {
                     className="h-11"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Password</Label>
                     <Link
@@ -136,13 +137,14 @@ export default function Login() {
                   </div>
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" :"password"}
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className="h-11"
                   />
+                  <Eye className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1 hover:cursor-pointer" onClick={()=>setShowPassword(!showPassword)} />
                 </div>
                 <Button type="submit" className="w-full h-11 text-base hover:cursor-pointer bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 hover:opacity-85" size="lg">
                   Sign in

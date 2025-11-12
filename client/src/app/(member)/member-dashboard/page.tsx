@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TaskCard from "@/components/cards/TaskCard";
 import { SortableContext} from '@dnd-kit/sortable'
+import { TaskCardSkeleton, KanbanBoardSkeleton } from "@/components/ui/skeleton-loaders";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,6 +68,8 @@ const MemberDashboard = () => {
 
   
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(true);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const { getTasksByProject, getTasksByAssignedUser } = useTaskStore();
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const {projects, getProjectsByMember} = useProjectStore();
@@ -79,11 +82,15 @@ const MemberDashboard = () => {
     useEffect(() => {
 
       const fetchProjects = async () => {
+        setIsLoadingProjects(true);
         try{
           await getProjectsByMember(String(user?._id));
         }
         catch(err){
           console.log(err);
+        }
+        finally {
+          setIsLoadingProjects(false);
         }
       }
       fetchProjects();
@@ -92,7 +99,7 @@ const MemberDashboard = () => {
 
     useEffect(() => {
   async function fetchTasks(){
-
+        setIsLoadingTasks(true);
         try{
 
           if(selectedProject === 'all'){
@@ -136,6 +143,9 @@ const MemberDashboard = () => {
         catch(err){
           console.log(err)
           toast.error('Failed to fetch tasks');
+        }
+        finally {
+          setIsLoadingTasks(false);
         }
       }
       fetchTasks();
@@ -421,6 +431,9 @@ const MemberDashboard = () => {
         
 
         {/* Kanban Board */}
+        {isLoadingTasks ? (
+          <KanbanBoardSkeleton />
+        ) : (
         <DndContext 
           sensors={sensors}
           collisionDetection={closestCorners} 
@@ -666,6 +679,7 @@ const MemberDashboard = () => {
             ) : null}
           </DragOverlay>
         </DndContext>
+        )}
       </div>
     </>
   );

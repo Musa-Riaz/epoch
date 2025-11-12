@@ -65,9 +65,7 @@ app.use(async (req, res, next) => {
   }
 });
 
-app.use('/get', ()=> {
-  console.log("Get request received");
-})
+
 // routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);

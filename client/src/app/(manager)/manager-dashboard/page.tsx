@@ -10,6 +10,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { 
+  DashboardOverviewSkeleton, 
+  StatsCardSkeleton, 
+  ProjectCardSkeleton 
+} from "@/components/ui/skeleton-loaders";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +53,8 @@ import { ProjectAnalyticsResponse } from "@/interfaces/api";
 const ManagerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   
   // Form state
   const [projectName, setProjectName] = useState("");
@@ -75,14 +82,34 @@ const ManagerDashboard = () => {
 // use effect to fetch manager analytics
   useEffect(() => {
     const fetchAnalytics = async () => {
-      if(user?.role === 'manager' && user?._id) {
-        const analytics = await getManagerAnalytics(user._id);
-        // Update state or perform actions with the analytics data
-        setStats(analytics);
+      setIsLoadingStats(true);
+      try {
+        if(user?.role === 'manager' && user?._id) {
+          const analytics = await getManagerAnalytics(user._id);
+          // Update state or perform actions with the analytics data
+          setStats(analytics);
+        }
+      } finally {
+        setIsLoadingStats(false);
       }
     }
     fetchAnalytics();
   }, [user, getManagerAnalytics]);
+
+    // use effect to fetch projects
+    useEffect(() => {
+      const fetchProjects = async () => {
+        setIsLoadingProjects(true);
+        try {
+          if(user?.role === 'manager' && user?._id) {
+            await getProjectsByManager(user._id);
+          }
+        } finally {
+          setIsLoadingProjects(false);
+        }
+      }
+      fetchProjects();
+    }, [user, getProjectsByManager]);
 
     // use effect to fetch project analytics - runs when projects are loaded
     useEffect(() => {
@@ -445,64 +472,74 @@ const ManagerDashboard = () => {
 
         {/* KPI Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-              <FolderKanban className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalProjects}</div>
-              <p className="text-xs text-muted-foreground">
-                 active
-              </p>
-            </CardContent>
-          </Card>
+          {isLoadingStats ? (
+            <>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <StatsCardSkeleton key={i} />
+              ))}
+            </>
+          ) : (
+            <>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+                  <FolderKanban className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats?.totalProjects}</div>
+                  <p className="text-xs text-muted-foreground">
+                    active
+                  </p>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{}</div>
-              <p className="text-xs text-muted-foreground">
-                {} completed
-              </p>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {} completed
+                  </p>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Tasks</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{}</div>
-              <p className="text-xs text-muted-foreground">Across all projects</p>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Pending Tasks</CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{}</div>
+                  <p className="text-xs text-muted-foreground">Across all projects</p>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Upcoming Deadlines</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{}</div>
-              <p className="text-xs text-muted-foreground">Next 7 days</p>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Upcoming Deadlines</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{}</div>
+                  <p className="text-xs text-muted-foreground">Next 7 days</p>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Team Members</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalMembers}</div>
-              <p className="text-xs text-muted-foreground">Active members</p>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Team Members</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats?.totalMembers}</div>
+                  <p className="text-xs text-muted-foreground">Active members</p>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
 
         {/* Main Content Tabs */}
@@ -526,7 +563,6 @@ const ManagerDashboard = () => {
                 <CardContent className="space-y-4">
                   {projects.slice(0, 3).map((project) => {
                     const analytics = projectAnalytics[String(project._id)];
-                    const progress = analytics?.progress || project.progress || 0;
                     const completedTasks = analytics?.completedTasks || 0;
                     const totalTasks = analytics?.totalTasks || 0;
                     return (
@@ -632,7 +668,18 @@ const ManagerDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {projects.map((project) => (
+                  {isLoadingProjects ? (
+                    <>
+                      {[1, 2, 3].map((i) => (
+                        <ProjectCardSkeleton key={i} />
+                      ))}
+                    </>
+                  ) : projects.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground">No projects found. Create your first project!</p>
+                    </div>
+                  ) : (
+                    projects.map((project) => (
                     <Card key={project.id}>
                       <CardHeader>
                         <div className="flex items-start justify-between">
@@ -641,12 +688,14 @@ const ManagerDashboard = () => {
                             <CardDescription className="flex items-center gap-4">
                               <span className="flex items-center gap-1">
                                 <Users className="h-3 w-3" />
-                                {project.members} members
+                                {project.team?.length || 0} members
                               </span>
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                Due: {new Date(project.deadline).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}
-                              </span>
+                              {project.deadline && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  Due: {new Date(project.deadline).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                                </span>
+                              )}
                             </CardDescription>
                           </div>
                           <Badge
@@ -672,9 +721,7 @@ const ManagerDashboard = () => {
                         </div>
                         <div className="flex items-center justify-between">
                           <p className="text-sm text-muted-foreground">
-                            {
-                              projectAnalytics?.completedTasks
-                          } of {projectAnalytics?.totalTasks} tasks completed
+                            {String(projectAnalytics[String(project._id)]?.completedTasks || 0)} of {String(projectAnalytics[String(project._id)]?.totalTasks || 0)} tasks completed
                           </p>
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm">
@@ -687,7 +734,8 @@ const ManagerDashboard = () => {
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
