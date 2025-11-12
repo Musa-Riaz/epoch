@@ -34,6 +34,9 @@ app.use(morgan('dev'))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 
+app.use('/get', ()=> {
+  console.log("Get request received");
+})
 // routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
