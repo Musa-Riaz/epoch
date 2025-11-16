@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 import { commentApi } from '@/lib/api';
 import { IComment, CreateCommentRequest, UpdateCommentRequest } from '@/interfaces/api';
 import { getErrorMessage } from '@/utils/helpers.utils';
+import { get } from 'mongoose';
 
 interface CommentState {
   comments: IComment[];
@@ -23,8 +24,9 @@ type CommentStore = CommentState & CommentActions;
 
 export const useCommentStore = create<CommentStore>()(
   devtools(
-    (set) => ({
-      // Initial state
+    persist(
+      (set, get) => ({
+        // Initial state
       comments: [],
       commentsByTask: {},
       isLoading: false,
@@ -36,6 +38,7 @@ export const useCommentStore = create<CommentStore>()(
         try {
           const response = await commentApi.getCommentsByTask(taskId);
           const comments = response.data.data;
+          console.log('Fetched comments for task', taskId, comments);
           set((state) => ({
             commentsByTask: {
               ...state.commentsByTask,
@@ -129,6 +132,10 @@ export const useCommentStore = create<CommentStore>()(
       clearError: () => {
         set({ error: null });
       },
-    })
+    }),
+    {
+      name: 'comment-store',
+    }
+  )
   )
 );

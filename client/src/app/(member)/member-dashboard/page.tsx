@@ -72,6 +72,7 @@ const MemberDashboard = () => {
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const { getTasksByProject, getTasksByAssignedUser } = useTaskStore();
   const [selectedProject, setSelectedProject] = useState<string>('all');
+  const [comment, setComment]  =useState('');
   const {projects, getProjectsByMember} = useProjectStore();
   const { user } = useAuthStore();
 
@@ -309,45 +310,45 @@ const MemberDashboard = () => {
     };
 
 
-    const handleAddTask = async (status : 'todo' | 'in-progress' | 'done') : Promise<void> => {
-       try {
-      const res = await createTask({
-          projectId: '68f3bb9f6e9169a633a0ffe1', // For testing purposes
-          status,
-          title,
-          description,
-          priority,
-          media,
-        })
-        if(res){
-          // Add the new task to local state immediately
-          const newTask: Task = {
-            id: String(res._id),
-            priority: res.priority,
-            title: res.title,
-            description: res.description || '',
-            status: res.status === 'in-progress' ? 'inProgress' : res.status as 'todo' | 'done',
-          };
-          setTasks(prevTasks => [...prevTasks, newTask]);
+    // const handleAddTask = async (status : 'todo' | 'in-progress' | 'done') : Promise<void> => {
+    //    try {
+    //   const res = await createTask({
+    //       projectId: '68f3bb9f6e9169a633a0ffe1', // For testing purposes
+    //       status,
+    //       title,
+    //       description,
+    //       priority,
+    //       media,
+    //     })
+    //     if(res){
+    //       // Add the new task to local state immediately
+    //       const newTask: Task = {
+    //         id: String(res._id),
+    //         priority: res.priority,
+    //         title: res.title,
+    //         description: res.description || '',
+    //         status: res.status === 'in-progress' ? 'inProgress' : res.status as 'todo' | 'done',
+    //       };
+    //       setTasks(prevTasks => [...prevTasks, newTask]);
           
-          // Clear form fields
-          setTitle('');
-          setDescription('');
-          setPriority('medium');
+    //       // Clear form fields
+    //       setTitle('');
+    //       setDescription('');
+    //       setPriority('medium');
           
-          toast.success("Task created successfully")
-        }
-       }
-       catch (err: unknown) {
-      if (err instanceof Error) {
-        const axiosError = err as { response?: { data?: { error?: string } } };
-        const responseError = axiosError.response?.data?.error;
-        toast.error(responseError ?? err.message);
-      } else {
-        toast.error(String(err));
-      }
-    }
-    }
+    //       toast.success("Task created successfully")
+    //     }
+    //    }
+    //    catch (err: unknown) {
+    //   if (err instanceof Error) {
+    //     const axiosError = err as { response?: { data?: { error?: string } } };
+    //     const responseError = axiosError.response?.data?.error;
+    //     toast.error(responseError ?? err.message);
+    //   } else {
+    //     toast.error(String(err));
+    //   }
+    // }
+    // }
 
   return (
     <>
@@ -414,18 +415,18 @@ const MemberDashboard = () => {
         {/* Team Members */}
         <div className="flex items-center gap-2">
           <div className="flex -space-x-2">
-            {[1, 2, 3, 4, 5].map((i) => (
+            {/* {[1, 2, 3, 4, 5].map((i) => (
               <Avatar key={i} className="border-2 border-background w-8 h-8">
                 <AvatarImage src="" />
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs">
                   U{i}
                 </AvatarFallback>
               </Avatar>
-            ))}
+            ))} */}
           </div>
-          <Button variant="outline" size="sm" className="rounded-full h-8 w-8 p-0 text-lg">
+          {/* <Button variant="outline" size="sm" className="rounded-full h-8 w-8 p-0 text-lg">
             +12
-          </Button>
+          </Button> */}
         </div>
 
         
@@ -451,7 +452,8 @@ const MemberDashboard = () => {
                   <h3 className="font-semibold">To Do</h3>
                   <Badge variant="secondary" className="rounded-full">{todoTasks?.length}</Badge>
                 </div>
-                  <Dialog>
+                {/* I feel like in the members section, they shouldn't have the ability to add tasks, rather they are assigned by the manager. thats why I am removing the option to add tasks from here */}
+                  {/* <Dialog>
                     <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 hover:cursor-pointer">
                       <Plus className="h-4 w-4 " />
@@ -496,7 +498,7 @@ const MemberDashboard = () => {
                         </div>
                       </div>
                     </DialogContent>
-                  </Dialog>
+                  </Dialog> */}
                 </div>
              
                 <div className="w-full h-2 rounded-full mt-4 bg-blue-500" />
@@ -526,7 +528,7 @@ const MemberDashboard = () => {
                   <h3 className="font-semibold">In Progress</h3>
                   <Badge variant="secondary" className="rounded-full">{inProgressTasks?.length}</Badge>
                 </div>
-                                <Dialog>
+                                {/* <Dialog>
                     <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 hover:cursor-pointer">
                       <Plus className="h-4 w-4 " />
@@ -571,7 +573,7 @@ const MemberDashboard = () => {
                         </div>
                       </div>
                     </DialogContent>
-                  </Dialog>
+                  </Dialog> */}
                 </div>
              
                 <div className="w-full h-2 rounded-full mt-4 bg-yellow-500" />
@@ -601,7 +603,7 @@ const MemberDashboard = () => {
                   <h3 className="font-semibold">Done</h3>
                   <Badge variant="secondary" className="rounded-full">{doneTasks?.length}</Badge>
                 </div>
-                                  <Dialog>
+                                  {/* <Dialog>
                     <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 hover:cursor-pointer">
                       <Plus className="h-4 w-4 " />
@@ -646,7 +648,7 @@ const MemberDashboard = () => {
                         </div>
                       </div>
                     </DialogContent>
-                  </Dialog>
+                  </Dialog> */}
                 </div>
              
                 <div className="w-full h-2 rounded-full mt-4 bg-green-500" />
