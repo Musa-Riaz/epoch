@@ -92,6 +92,43 @@ export async function login(req: Request, res: Response): Promise<void> {
 
 }
 
+export async function updateProfile(req: Request, res: Response) : Promise<void> {
+    try {
+
+        const {userId} = req.params;
+        if(!userId) {
+            return sendError({res, error: 'Unauthorized', status: 401});
+        }
+        const {firstName, lastName, email, role, profilePicture, password} = req.body;
+
+        const updatedUser = await User.findByIdAndUpdate(userId, {
+            firstName,
+            lastName,
+            email,
+            role,
+            profilePicture,
+            password: password ? await hashPassword(password) : undefined //hash the new password if provided
+        }, {new: true});
+        //new will check for the updated document
+
+        if(!updatedUser) {
+            return sendError({res, error: 'User not found', status: 404});
+        }
+
+        return sendSuccess({
+            res,
+            data: updatedUser,
+            status: 200,
+            message: 'Profile updated successfully'
+        });
+
+    }
+    
+    catch(err){
+        return sendError({res, error: 'Failed to update profile', details: err as any, status: 500});
+    }
+}
+
 export async function getProfile(req: Request, res: Response) : Promise<void> {
     try {
 

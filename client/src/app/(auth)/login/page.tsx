@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,22 +9,45 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { CheckCircle2, Layers, Users, TrendingUp, Eye } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
 
   const { login } = useAuthStore();
+
+  useEffect(() => {
+    // Check if there's a pending invitation
+    const pendingInvitation = localStorage.getItem("pending_invitation");
+    if (pendingInvitation) {
+      toast("Please log in to accept your project invitation", {
+        icon: "📧",
+        duration: 4000,
+      });
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await login(email, password);
       toast.success("Logged in successfully!");
-      // get the user role from the store after login
+      
+      // Check for pending invitation or redirect parameter
+      const pendingInvitation = localStorage.getItem("pending_invitation");
+      const redirect = searchParams?.get("redirect");
+      
+      if (pendingInvitation && redirect) {
+        localStorage.removeItem("pending_invitation");
+        router.push(`${redirect}?token=${pendingInvitation}`);
+        return;
+      }
+      
+      // Get the user role from the store after login
       const userRole = useAuthStore.getState().user?.role;
       
       switch (userRole){

@@ -42,6 +42,9 @@ export const authApi = {
       profilePicture,
     }),
 
+    updateProfile: async (userId: string, profileData: Partial<IUserResponse>) =>
+      await api.put<ApiResponse<IUserResponse>>(`/auth/updateProfile/${userId}`, profileData),
+
   getUserById: async (id: string) =>
     await api.get<ApiResponse<IUserResponse>>(`/auth/user/${id}`),
 

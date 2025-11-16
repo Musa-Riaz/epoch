@@ -69,6 +69,7 @@ const ManagerDashboard = () => {
   
 
   const { getManagerAnalytics, user } = useAuthStore();
+  const token = useAuthStore((state) => state.token);
   const { createProject, getProjectsByManager, getProjectAnalytics, projects } = useProjectStore();
 
 
@@ -189,6 +190,37 @@ const ManagerDashboard = () => {
       const newProject = await createProject(projectData);
       
       if (newProject) {
+        toast.success('Project created successfully!');
+        
+        // Send invitation emails if any were provided
+        if (memberEmails.length > 0) {
+          try {
+            const response = await fetch(`http://localhost:8500/api/invitations/send`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                projectId: newProject._id,
+                emails: memberEmails,
+              }),
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+              const successCount = result.data.results.filter((r: { success: boolean }) => r.success).length;
+              toast.success(`Sent ${successCount} invitation(s)!`);
+            } else {
+              toast.error('Failed to send some invitations');
+            }
+          } catch (error) {
+            console.error('Failed to send invitations:', error);
+            toast.error('Failed to send invitation emails');
+          }
+        }
+        
         // Reset form
         setProjectName("");
         setProjectDescription("");
@@ -201,11 +233,6 @@ const ManagerDashboard = () => {
         
         // Refresh projects list
         await getProjectsByManager(user._id);
-
-        toast.success('Project created successfully!');
-        
-        // TODO: Send invitation emails to memberEmails
-        console.log('Invitation emails to be sent to:', memberEmails);
       }
     } catch (error) {
       console.error('Failed to create project:', error);

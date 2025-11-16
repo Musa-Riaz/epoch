@@ -7,13 +7,13 @@ import projectRoutes from './app/routes/project.routes';
 import taskRoutes from './app/routes/task.routes';
 import commentRoutes from './app/routes/comment.routes';
 import teamRoutes from './app/routes/team.routes';
+import invitationRoutes from './app/routes/invitation.routes';
 import cors from 'cors'
 import morgan from 'morgan'
 import http from 'http'
 import mongoose from 'mongoose'
 
-// Load environment variables
-dotenv.config()
+dotenv.config();
 
 const app = express()
 
@@ -72,6 +72,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/invitations', invitationRoutes);
 
 app.use(errorMiddleware);
 

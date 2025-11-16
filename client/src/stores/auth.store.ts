@@ -68,6 +68,19 @@ export const useAuthStore = create<AuthStore>()(
                 }
             },
 
+            updateProfile: async (userId: string, profileData: Partial<IUserResponse>)=> {
+                set({ isLoading: true, error: null});
+                try {
+                    const res = (await authApi.updateProfile(userId, profileData)).data.data;
+                    set({user: res, isLoading: false });
+                    return res;
+                }
+                catch(err){
+                    set({ isLoading: false, error: getErrorMessage(err) });
+                    throw err;
+                }
+            }
+,
             getAllUsers: async () => {
                 set({ isLoading: true, error: null});
                 try{

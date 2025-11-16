@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import {signup, login, getProfile, getAllUsers, getUserById, getManagerAnalytics} from '../controllers/auth.controller';
+import {signup, login, getProfile, getAllUsers, getUserById, getManagerAnalytics, updateProfile} from '../controllers/auth.controller';
 import { authMiddleware, requireRole } from '../middlewares/authMiddleware';
 import { validateRequest, signupSchema, loginSchema } from '../validators/schemas';
 
@@ -7,6 +7,7 @@ const router = Router();
 
 router.post('/signup', validateRequest(signupSchema), signup);
 router.post('/login', validateRequest(loginSchema), login);
+router.put('/updateProfile/:userId', authMiddleware, updateProfile);
 router.get('/profile', getProfile);
 
 // Admin routes
