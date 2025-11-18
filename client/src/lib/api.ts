@@ -136,4 +136,6 @@ export const commentApi = {
 
   deleteComment: async (id: string) =>
     await api.delete<ApiResponse<null>>(`/comments/${id}`),
+  getCommentAvatar: async (authorId: string) => 
+    await api.get<ApiResponse<IUserResponse>>(`/comments/avatar/${authorId}`)
 };

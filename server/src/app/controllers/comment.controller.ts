@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { sendSuccess, sendError } from '../utils/api';
 import Comment from '../../infrastructure/database/models/comment.model';
+import User from '../../infrastructure/database/models/user.model';
 
 export async function addComment(req: Request, res: Response): Promise<void> {
   try {
@@ -54,4 +55,23 @@ export async function deleteComment(req: Request, res: Response): Promise<void> 
   } catch (err) {
     return sendError({ res, error: 'Failed to delete comment', details: err as any, status: 500 });
   }
+}
+
+
+export async function getCommentAvatar(req: Request, res: Response): Promise<void> {
+
+  try{
+
+    const { authorId } = req.params;
+    // finding user by id
+    const user = await User.findById(authorId);
+    if(!user) return sendError({res, error: 'User not found', status: 404});
+    
+    return sendSuccess({res, data: user, status: 200, message: "User Fetched Successfully"});
+
+  }
+  catch(err){
+    return sendError({ res, error: 'Failed to get comment avatar', details: err as any, status: 500 });
+  }
+
 }

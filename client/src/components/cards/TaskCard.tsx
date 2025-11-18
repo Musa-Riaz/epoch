@@ -22,7 +22,7 @@ import { useCommentStore } from "@/stores/comment.store";
 import { useEffect, useState } from "react";
 import { Textarea } from "../ui/textarea";
 import toast from "react-hot-toast";
-import { useAuthStore } from "@/stores/auth.store";
+import {Send} from 'lucide-react'
 
 interface TaskCardProps {
   id: string;
@@ -32,14 +32,15 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ id, priority, title, description }: TaskCardProps) => {
-  const { getCommentsByTask, commentsByTask, createComment } =
-    useCommentStore();
+  const { getCommentsByTask, commentsByTask, createComment, getCommentAvatar } = useCommentStore();
   const [taskCommentClicked, setTaskCommentClicked] = useState(false);
   const [commentContent, setCommentContent] = useState("");
-  const {getUserById} = useAuthStore();
+  
   useEffect(() => {
     getCommentsByTask(id);
   }, [id, getCommentsByTask]);
+
+
 
   const {
     attributes,
@@ -74,16 +75,6 @@ const TaskCard = ({ id, priority, title, description }: TaskCardProps) => {
       console.log(err);
     }
   };
-
-  // fetch user intials for avatar
-  // useEffect(() => {
-  //   const fetchUsers = async () => {
-  //     for (const comment of commentsByTask[id] || []) {
-  //       await getUserById(String(comment.authorId));
-  //     }
-  //   }
-  //   fetchUsers();
-  // }, [commentsByTask, id, getUserById]);
 
   return (
     <Card
@@ -141,7 +132,7 @@ const TaskCard = ({ id, priority, title, description }: TaskCardProps) => {
       {taskCommentClicked && (
         <CardFooter className="px-4">
           {/* Comments List */}
-          <div className="space-y-2 w-full  max-h-40 overflow-y-auto">
+          <div className="space-y-2 w-full max-h-40 overflow-y-auto scrollbar-hide">
             {commentsByTask[id]?.map((comment) => {
               return (
                 <div
@@ -149,7 +140,9 @@ const TaskCard = ({ id, priority, title, description }: TaskCardProps) => {
                   className="flex items-center gap-2 border w-full p-2 rounded-md"
                 >
                   <Avatar className="w-6 h-6 rounded-full bg-blue-700">
-                    <AvatarFallback>{}</AvatarFallback>
+                    <AvatarFallback>
+                      ??
+                    </AvatarFallback>
                   </Avatar>
                   <div className="p-2 rounded-md">
                     <p className="text-sm">{comment.content}</p>
@@ -159,17 +152,17 @@ const TaskCard = ({ id, priority, title, description }: TaskCardProps) => {
               );
             })}
             {/* add comment */}
-            <div className="w-full flex items-center gap-2 mt-2">
+            <div className="w-full flex items-center gap-2 mt-2 relative">
               <Textarea
                 placeholder="Add a comment"
                 value={commentContent}
                 onChange={(e) => setCommentContent(e.target.value)}
               />
               <Button
-                variant={"secondary"}
                 onClick={() => handleAddComment(id)}
+                className="rounded-full h-8 w-8 absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-blue-600 hover:cursor-pointer"
               >
-                Add
+                <Send className="h-4 w-4" />
               </Button>
             </div>
           </div>

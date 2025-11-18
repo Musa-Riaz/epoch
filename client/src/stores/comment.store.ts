@@ -132,6 +132,18 @@ export const useCommentStore = create<CommentStore>()(
       clearError: () => {
         set({ error: null });
       },
+      getCommentAvatar: async (authorId: string) => {
+        set({ isLoading: true, error: null});
+        try {
+          const res = await commentApi.getCommentAvatar(authorId);
+          set({isLoading: false});
+          return res.data.data;
+        }
+        catch(err){
+          set({ error: getErrorMessage(err), isLoading: false });
+          throw err;
+        }
+      }
     }),
     {
       name: 'comment-store',
