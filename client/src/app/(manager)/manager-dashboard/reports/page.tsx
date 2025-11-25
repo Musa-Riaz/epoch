@@ -8,12 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   FileText,
   Download,
-  Calendar,
   TrendingUp,
   Users,
   CheckCircle2,
   Clock,
-  AlertTriangle
 } from "lucide-react";
 
 // Mock data

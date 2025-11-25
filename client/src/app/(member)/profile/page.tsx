@@ -19,7 +19,6 @@ import {
   Save,
   Lock,
   Bell,
-  Palette,
   LogOut
 } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -61,6 +60,7 @@ const ProfilePage = () => {
        
     } catch (error) {
       toast.error("Failed to update profile");
+      console.error(error);
     } finally {
       setIsSaving(false);
     }
@@ -88,6 +88,7 @@ const ProfilePage = () => {
       setConfirmPassword("");
     } catch (error) {
       toast.error("Failed to change password");
+      console.error(error);
     } finally {
       setIsSaving(false);
     }

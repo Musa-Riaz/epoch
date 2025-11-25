@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TaskCard from "@/components/cards/TaskCard";
 import { SortableContext} from '@dnd-kit/sortable'
-import { TaskCardSkeleton, KanbanBoardSkeleton } from "@/components/ui/skeleton-loaders";
+import {  KanbanBoardSkeleton } from "@/components/ui/skeleton-loaders";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,22 +20,11 @@ import {
 } from "lucide-react";
 import { closestCorners, DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, useDroppable } from "@dnd-kit/core";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input";
-import {Label} from '@/components/ui/label';
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea";
-import { DialogClose } from "@radix-ui/react-dialog";
 import { useTaskStore } from "@/stores/task.store";
 import { toast } from "react-hot-toast";
 import { useProjectStore } from "@/stores/project.store";
@@ -72,7 +60,6 @@ const MemberDashboard = () => {
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const { getTasksByProject, getTasksByAssignedUser } = useTaskStore();
   const [selectedProject, setSelectedProject] = useState<string>('all');
-  const [comment, setComment]  =useState('');
   const {projects, getProjectsByMember} = useProjectStore();
   const { user } = useAuthStore();
 
@@ -153,12 +140,12 @@ const MemberDashboard = () => {
     }, [selectedProject, getTasksByProject, getTasksByAssignedUser, user?._id]);
 
     const [activeTask, setActiveTask] = useState<Task | null>(null);
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
-    const [media] = useState<File | null>(null);
+    // const [title, setTitle] = useState('');
+    // const [description, setDescription] = useState('');
+    // const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
+    // const [media] = useState<File | null>(null);
 
-    const { createTask, updateTask } = useTaskStore();
+    const {  updateTask } = useTaskStore();
 
     // Configure sensors for better drag experience
     const sensors = useSensors(

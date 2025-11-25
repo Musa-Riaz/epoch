@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8500/api/'; //change this to localhost:8500/api whenn working with development
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://epochserver.vercel.app/api/'; //change this to localhost:8500/api whenn working with development
 
 // Function to get auth store (lazy loaded to avoid circular dependencies)
 const getAuthStore = () => {
