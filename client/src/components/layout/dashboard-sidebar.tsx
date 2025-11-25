@@ -259,7 +259,7 @@ export function DashboardSidebar() {
                 className="w-[--radix-popper-anchor-width]"
               >
                 <DropdownMenuItem asChild>
-                  <Link href="/member-dashboard/profile" className="cursor-pointer">
+                  <Link href="/profile" className="cursor-pointer">
                     <User2 className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                   </Link>

@@ -1,9 +1,10 @@
-import Image from "next/image";
+"use client"
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  return (
-<div>
-  <h1 className="text-xl font-bold">Welcome to the Home Page</h1>
-</div>
-  );
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/login");
+  }, [router]);
 }

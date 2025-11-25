@@ -430,22 +430,6 @@ For issues and questions:
 2. Search existing issues
 3. Create a new issue with details
 
-## 🎉 What's New
-
-### Latest Update: Email Invitation System
-
-A complete email invitation system has been implemented:
-
-- ✅ 900+ lines of backend code
-- ✅ 830+ lines of frontend code
-- ✅ 1,200+ lines of documentation
-- ✅ 5 new API endpoints
-- ✅ 3 new UI components
-- ✅ Professional email templates
-- ✅ Support for 4 email providers
-- ✅ Complete testing guide
-
-**Get Started**: [QUICK_START_INVITATIONS.md](./QUICK_START_INVITATIONS.md)
 
 ## 📈 Roadmap
 
