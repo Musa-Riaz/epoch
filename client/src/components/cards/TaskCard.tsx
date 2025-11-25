@@ -32,7 +32,7 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ id, priority, title, description }: TaskCardProps) => {
-  const { getCommentsByTask, commentsByTask, createComment, getCommentAvatar } = useCommentStore();
+  const { getCommentsByTask, commentsByTask, createComment } = useCommentStore();
   const [taskCommentClicked, setTaskCommentClicked] = useState(false);
   const [commentContent, setCommentContent] = useState("");
   

@@ -91,7 +91,7 @@ export function DashboardHeader() {
                     <span className="ml-auto text-xs text-muted-foreground">2m ago</span>
                   </div>
                   <p className="text-xs text-muted-foreground pl-4">
-                    You have been assigned to "Mobile App Design"
+                    You have been assigned to Mobile App Design
                   </p>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
@@ -101,7 +101,7 @@ export function DashboardHeader() {
                     <span className="ml-auto text-xs text-muted-foreground">1h ago</span>
                   </div>
                   <p className="text-xs text-muted-foreground pl-4">
-                    "Research" task has been marked as complete
+                    Research task has been marked as complete
                   </p>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
@@ -111,7 +111,7 @@ export function DashboardHeader() {
                     <span className="ml-auto text-xs text-muted-foreground">3h ago</span>
                   </div>
                   <p className="text-xs text-muted-foreground pl-4">
-                    John commented on "Wireframes"
+                    John commented on Wireframes
                   </p>
                 </DropdownMenuItem>
               </div>

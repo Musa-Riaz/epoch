@@ -3,7 +3,6 @@ import { devtools, persist } from 'zustand/middleware';
 import { commentApi } from '@/lib/api';
 import { IComment, CreateCommentRequest, UpdateCommentRequest } from '@/interfaces/api';
 import { getErrorMessage } from '@/utils/helpers.utils';
-import { get } from 'mongoose';
 
 interface CommentState {
   comments: IComment[];
@@ -25,7 +24,7 @@ type CommentStore = CommentState & CommentActions;
 export const useCommentStore = create<CommentStore>()(
   devtools(
     persist(
-      (set, get) => ({
+      (set) => ({
         // Initial state
       comments: [],
       commentsByTask: {},

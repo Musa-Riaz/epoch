@@ -28,7 +28,7 @@ type AuthStore = AuthState & AuthActions;
 
 export const useAuthStore = create<AuthStore>()(
     devtools(
-        persist((set, get) => ({
+        persist((set) => ({
             user: null,
             users: [],
             token: null,
@@ -86,13 +86,14 @@ export const useAuthStore = create<AuthStore>()(
                 try{
                     const response = (await authApi.getAllUsers()).data.data;
                     set({users: response, isLoading: false})
+                    return response;
                 }
                 catch(err){
                     set({
                         error: getErrorMessage(err),
                         isLoading: false
                     });
-                    return null
+                    return null;
                 }
             },
 
@@ -108,6 +109,7 @@ export const useAuthStore = create<AuthStore>()(
                         error: getErrorMessage(err),
                         isLoading: false
                     })
+                    return null;
                 }
             },
 

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { taskApi } from "@/lib/api";
-import { CreateTaskRequest, UpdateTaskRequest } from "@/interfaces/api";
+import { CreateTaskRequest, IUserResponse, UpdateTaskRequest } from "@/interfaces/api";
 import { ITask } from "@/interfaces/api";
 import { getErrorMessage } from "@/utils/helpers.utils";
 
@@ -19,7 +19,7 @@ interface TaskActions {
     getTasks: () => Promise<ITask[] | null>;
     getTasksByProject: (projectId: string) => Promise<ITask[] | null>;
     getTasksByAssignedUser: (userId: string) => Promise<ITask[] | null>;
-    getUserByTask: (taskId: string) => Promise<any | null>;
+    getUserByTask: (taskId: string) => Promise<IUserResponse | null>;
     assignTask: (taskId: string, memberId: string) => Promise<ITask | null>;
 }
 
