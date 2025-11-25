@@ -21,6 +21,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction)=
         next();
     }
     catch(err){
+      console.log(err);
         return sendError({
             res,
             error: 'Invalid or expired access token',

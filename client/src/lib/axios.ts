@@ -56,20 +56,22 @@ api.interceptors.response.use(
 
             try {
                 // Use auth store's logout function to clear state
-                const authStoreModule = await getAuthStore();
-                if (authStoreModule) {
-                    authStoreModule.getState().logout();
-                }
+                // const authStoreModule = await getAuthStore();
+                // if (authStoreModule) {
+                //     authStoreModule.getState().logout();
+                // }
+                console.log('🔒 Unauthorized access - logging out user', error);
+                console.log("This is the auth header", originalRequest.headers.Authorization)
             } catch (err) {
                 console.error('Error clearing auth state:', err);
                 // Fallback: clear localStorage directly
-                localStorage.removeItem('auth-storage');
+                // localStorage.removeItem('auth-storage');
             }
             
             // Redirect to login page
-            if (typeof window !== 'undefined') {
-                window.location.href = '/login';
-            }
+            // if (typeof window !== 'undefined') {
+            //     window.location.href = '/login';
+            // }
         }
 
         // Handle 403 Forbidden errors
