@@ -88,6 +88,7 @@ export default function ManagerAnalytics() {
         setAnalytics(await getManagerAnalytics(user._id));
       }
     }
+    
     fetchProjects();
   }, [user, getProjectsByManager, getManagerAnalytics]);
 

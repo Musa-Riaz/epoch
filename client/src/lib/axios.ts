@@ -32,10 +32,15 @@ api.interceptors.request.use(
                 const token = state?.token;
                 if (token) {
                     config.headers.Authorization = `Bearer ${token}`;
+                    console.log('✅ Token attached to request:', config.url, 'Token starts with:', token.substring(0, 20) + '...');
+                } else {
+                    console.log('⚠️ No token in storage for:', config.url);
                 }
             } catch (error) {
-                console.error('Error parsing auth storage:', error);
+                console.error('❌ Error parsing auth storage:', error);
             }
+        } else {
+            console.log('⚠️ No auth-storage found for:', config.url);
         }
         return config;
     },

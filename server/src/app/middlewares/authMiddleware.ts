@@ -4,12 +4,21 @@ import { sendError } from '../utils/api';
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction)=> {
     try {
+        console.log('🔐 Auth Middleware - Headers received:', {
+            authorization: req.headers.authorization ? 'present' : 'missing',
+            origin: req.headers.origin,
+            method: req.method,
+            path: req.path
+        });
+        
         // extract the token from the authorization header
         const token = extractToken(req.headers.authorization);
         if(!token){
+            console.log('❌ No token found in Authorization header');
             return res.status(401).json({ message: 'Unauthorized. Kindly login to access this resource.' });
         }
 
+        console.log('✅ Token extracted successfully');
         // verify the access token
         const decoded = verifyToken(token);
         // passing the user information in the request object
@@ -18,10 +27,11 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction)=
             email: decoded.email,
             role: decoded.role
         };
+        console.log('✅ Token verified for user:', decoded.email);
         next();
     }
     catch(err){
-      console.log(err);
+      console.log('❌ Auth middleware error:', err);
         return sendError({
             res,
             error: 'Invalid or expired access token',
