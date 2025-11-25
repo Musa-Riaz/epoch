@@ -32,15 +32,10 @@ api.interceptors.request.use(
                 const token = state?.token;
                 if (token) {
                     config.headers.Authorization = `Bearer ${token}`;
-                    console.log('✅ Token attached to request:', config.url, 'Token starts with:', token.substring(0, 20) + '...');
-                } else {
-                    console.log('⚠️ No token in storage for:', config.url);
                 }
             } catch (error) {
-                console.error('❌ Error parsing auth storage:', error);
+                console.error('Error parsing auth storage:', error);
             }
-        } else {
-            console.log('⚠️ No auth-storage found for:', config.url);
         }
         return config;
     },
@@ -61,22 +56,20 @@ api.interceptors.response.use(
 
             try {
                 // Use auth store's logout function to clear state
-                // const authStoreModule = await getAuthStore();
-                // if (authStoreModule) {
-                //     authStoreModule.getState().logout();
-                // }
-                console.log('🔒 Unauthorized access - logging out user', error);
-                console.log("This is the auth header", originalRequest.headers.Authorization)
+                const authStoreModule = await getAuthStore();
+                if (authStoreModule) {
+                    authStoreModule.getState().logout();
+                }
             } catch (err) {
                 console.error('Error clearing auth state:', err);
                 // Fallback: clear localStorage directly
-                // localStorage.removeItem('auth-storage');
+                localStorage.removeItem('auth-storage');
             }
             
             // Redirect to login page
-            // if (typeof window !== 'undefined') {
-            //     window.location.href = '/login';
-            // }
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+            }
         }
 
         // Handle 403 Forbidden errors
