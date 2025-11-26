@@ -3,7 +3,6 @@ import { persist, devtools } from 'zustand/middleware';
 import { projectApi } from '@/lib/api';
 import { IProject, CreateProjectRequest, UpdateProjectRequest, ProjectAnalyticsResponse, IUserResponse } from '@/interfaces/api';
 import { getErrorMessage } from '@/utils/helpers.utils';
-import { IUser } from '../../../server/src/infrastructure/database/models/user.model';
 
 interface ProjectState {
   projects: IProject[];

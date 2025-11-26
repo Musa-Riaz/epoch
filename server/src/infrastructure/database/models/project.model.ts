@@ -1,6 +1,7 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IProject extends Document {
+  _id: Types.ObjectId | string; //did this change for production
   name: string;
   description: string;
   owner: Types.ObjectId;
