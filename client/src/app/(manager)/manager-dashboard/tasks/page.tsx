@@ -59,6 +59,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { IUserResponse } from "@/interfaces/api";
 
 export default function ManagerTasks() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,7 +76,7 @@ export default function ManagerTasks() {
   const [taskAssignees, setTaskAssignees] = useState<
     Record<string, { firstName: string; lastName: string } | null>
   >({});
-  const [members, setMembers] = useState<IUser[]>([]);
+  const [members, setMembers] = useState<IUserResponse[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
@@ -164,7 +165,7 @@ export default function ManagerTasks() {
         setMembers(res || []);
       } else if (selectedProject === "all" && projects.length > 0) {
         // Reset members first, then collect all members from all projects
-        const allMembers: IUser[] = [];
+        const allMembers: IUserResponse[] = [];
         const seenMemberIds = new Set<string>();
 
         for (const project of projects) {
@@ -172,7 +173,7 @@ export default function ManagerTasks() {
 
           // Add members avoiding duplicates (in case a user is in multiple projects)
           if (projectMembers) {
-            projectMembers.forEach((member: IUser) => {
+            projectMembers.forEach((member: IUserResponse) => {
               if (!seenMemberIds.has(String(member._id))) {
                 seenMemberIds.add(String(member._id));
                 allMembers.push(member);
@@ -685,7 +686,7 @@ export default function ManagerTasks() {
                               } ${
                                 taskAssignees[String(task.assignedTo)]?.lastName
                               }`
-                            : task.assignedTo === true
+                            : task.assignedTo 
                             ? "Unassigned"
                             : " Loading..."}
                         </span>

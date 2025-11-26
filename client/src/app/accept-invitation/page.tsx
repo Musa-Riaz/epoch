@@ -185,7 +185,7 @@ export default function AcceptInvitationPage() {
           <CardContent className="space-y-4">
             <Alert>
               <AlertDescription>
-                You've successfully joined <strong>{invitation.project.name}</strong>!
+                You&apos;ve successfully joined <strong>{invitation.project.name}</strong>!
                 Redirecting to your dashboard...
               </AlertDescription>
             </Alert>
@@ -202,7 +202,7 @@ export default function AcceptInvitationPage() {
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mb-4">
             <Mail className="w-8 h-8 text-white" />
           </div>
-          <CardTitle className="text-2xl">You've Been Invited!</CardTitle>
+          <CardTitle className="text-2xl">You&apos;ve Been Invited!</CardTitle>
           <CardDescription>
             Join the project and start collaborating with your team
           </CardDescription>

@@ -6,11 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -409,7 +407,7 @@ export default function ProjectInvitations({ projectId, projectName }: ProjectIn
           <AlertDialogHeader>
             <AlertDialogTitle>Invitation Results</AlertDialogTitle>
             <AlertDialogDescription>
-              Here's the status of each invitation sent:
+              Here&apos;s the status of each invitation sent:
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2 py-4">

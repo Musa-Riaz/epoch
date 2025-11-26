@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { projectApi } from '@/lib/api';
-import { IProject, CreateProjectRequest, UpdateProjectRequest, ProjectAnalyticsResponse } from '@/interfaces/api';
+import { IProject, CreateProjectRequest, UpdateProjectRequest, ProjectAnalyticsResponse, IUserResponse } from '@/interfaces/api';
 import { getErrorMessage } from '@/utils/helpers.utils';
 import { IUser } from '../../../server/src/infrastructure/database/models/user.model';
 
@@ -24,8 +24,8 @@ interface ProjectActions {
   deleteProject: (id: string) => Promise<void>;
   setCurrentProject: (project: IProject | null) => void;
   clearError: () => void;
-  getMembersByProject: (projectId: string) => Promise<IUser[] | void>;
-  getManagerByProject: (ownerId: string) =>  Promise<IUser | null>;
+  getMembersByProject: (projectId: string) => Promise<IUserResponse[]>;
+  getManagerByProject: (ownerId: string) =>  Promise<IUserResponse | null>;
 }
 
 type ProjectStore = ProjectState & ProjectActions;
@@ -105,7 +105,7 @@ export const useProjectStore = create<ProjectStore>()(
 
           } catch (err) {
             set({ error: getErrorMessage(err), isLoading: false });
-            return null;
+            return [];
           }
         },
 

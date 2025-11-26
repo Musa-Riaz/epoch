@@ -13,6 +13,7 @@ export interface IUserResponse {
     email: string;
     role: 'member' | 'admin' | 'manager';
     profilePicture?: string;
+    password?: string;
     createdAt: string;
     updatedAt: string;
 }

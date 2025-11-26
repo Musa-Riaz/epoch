@@ -20,8 +20,9 @@ interface AuthActions {
     logout: () => void;
     setUser: (user: IUserResponse) => void;
     getUserById: (id: string) => Promise<IUserResponse | null>;
-    getAllUsers: () => Promise<IUserResponse[]>;
+    getAllUsers: () => Promise<IUserResponse[] | null>;
     getManagerAnalytics: (id: string) => Promise<{ totalProjects: number; totalMembers: number } | null>;
+    updateProfile: (userId: string, profileData: Partial<IUserResponse>) => Promise<IUserResponse>;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -35,7 +36,9 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: false,
             isLoading: false,
             error: null,
-
+            setUser: (user: IUserResponse) => {
+                set({ user });
+            },
             login: async (email: string, password: string) => {
                 set({isLoading: true, error: null});
                 try{ 

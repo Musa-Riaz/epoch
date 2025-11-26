@@ -248,7 +248,7 @@ export function DashboardSidebar() {
                   <div className="flex flex-col gap-0.5 leading-none">
                     <span className="font-semibold text-sm">{user?.firstName} {user?.lastName}</span>
                     <span className="text-xs text-muted-foreground">
-                      {userRole?.charAt(0).toUpperCase() + userRole?.slice(1) || 'Member'}
+                      {userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Member'}
                     </span>
                   </div>
                   <ChevronUp className="ml-auto" />
