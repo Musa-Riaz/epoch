@@ -194,7 +194,7 @@ const ManagerDashboard = () => {
         // Send invitation emails if any were provided
         if (memberEmails.length > 0) {
           try {
-            const response = await fetch(`http://localhost:8500/api/invitations/send`, {
+            const response = await fetch(`https://epochserver.vercel.app/api/invitations/send`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

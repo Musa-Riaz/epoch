@@ -54,7 +54,7 @@ export default function AcceptInvitationPage() {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://localhost:8500/api/invitations/token/${token}`
+        `https://epochserver.vercel.app/api/invitations/token/${token}`
       );
       
       if (response.data.success) {
@@ -86,7 +86,7 @@ export default function AcceptInvitationPage() {
     try {
       setAccepting(true);
       const response = await axios.post(
-        `http://localhost:8500/api/invitations/accept`,
+        `https://epochserver.vercel.app/api/invitations/accept`,
         { token },
         {
           headers: {
