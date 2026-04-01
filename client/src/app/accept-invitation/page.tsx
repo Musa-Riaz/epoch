@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,10 @@ interface InvitationDetails {
   expiresAt: string;
 }
 
+interface ApiErrorResponse {
+  error?: string;
+}
+
 export default function AcceptInvitationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,21 +44,18 @@ export default function AcceptInvitationPage() {
 
   const user_token = useAuthStore((state) => state.token);
 
-  useEffect(() => {
+  const fetchInvitationDetails = useCallback(async () => {
     if (!token) {
       setError("Invalid invitation link");
       setLoading(false);
       return;
     }
 
-    fetchInvitationDetails();
-  }, [token]);
-
-  const fetchInvitationDetails = async () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `https://epochserver.vercel.app/api/invitations/token/${token}`
+        // TODO:: Change it to .env variable when working with development
+        `http://localhost:8500/api/invitations/token/${token}`
       );
       
       if (response.data.success) {
@@ -62,13 +63,20 @@ export default function AcceptInvitationPage() {
       } else {
         setError(response.data.error || "Failed to load invitation");
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || "Failed to load invitation";
+    } catch (err: unknown) {
+      const errorMessage =
+        axios.isAxiosError<ApiErrorResponse>(err) && err.response?.data?.error
+          ? err.response.data.error
+          : "Failed to load invitation";
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    fetchInvitationDetails();
+  }, [fetchInvitationDetails]);
 
   const handleAcceptInvitation = async () => {
     if (!isAuthenticated) {
@@ -86,7 +94,8 @@ export default function AcceptInvitationPage() {
     try {
       setAccepting(true);
       const response = await axios.post(
-        `https://epochserver.vercel.app/api/invitations/accept`,
+        // TODO:: Change it to .env variable when working with development
+        `http://localhost:8500/api/invitations/accept`, 
         { token },
         {
           headers: {
@@ -106,8 +115,11 @@ export default function AcceptInvitationPage() {
       } else {
         toast.error(response.data.error || "Failed to accept invitation");
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || "Failed to accept invitation";
+    } catch (err: unknown) {
+      const errorMessage =
+        axios.isAxiosError<ApiErrorResponse>(err) && err.response?.data?.error
+          ? err.response.data.error
+          : "Failed to accept invitation";
       toast.error(errorMessage);
     } finally {
       setAccepting(false);

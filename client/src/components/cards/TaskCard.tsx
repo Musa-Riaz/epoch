@@ -136,7 +136,7 @@ const TaskCard = ({ id, priority, title, description }: TaskCardProps) => {
             {commentsByTask[id]?.map((comment) => {
               return (
                 <div
-                  key={comment.id}
+                  key={comment._id}
                   className="flex items-center gap-2 border w-full p-2 rounded-md"
                 >
                   <Avatar className="w-6 h-6 rounded-full bg-blue-700">

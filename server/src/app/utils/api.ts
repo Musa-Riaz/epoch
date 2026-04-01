@@ -28,10 +28,16 @@ export function sendSuccess<T>({ res, data, status = 200, message, pagination }:
 }
 
 export function sendError({ res, error, details, status = 400 }: { res: Response, error: string, details?: any, status?: number }) {
-  res.status(status).json({
+  const isProduction = process.env.NODE_ENV === 'production';
+  const response: ApiResponse<any> = {
     success: false,
     data: null as any,
     error,
-    details
-  } as ApiResponse<any>);
+  };
+
+  if (!isProduction && details !== undefined) {
+    response.details = details;
+  }
+
+  res.status(status).json(response);
 }

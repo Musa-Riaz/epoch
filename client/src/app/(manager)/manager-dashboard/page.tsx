@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/select";
 import { useAuthStore } from "@/stores/auth.store";
 import { useProjectStore } from "@/stores/project.store";
+import { useActivityStore } from "@/stores/activity.store";
+import { getSocket } from "@/lib/socket";
 import {
   BarChart3,
   Calendar,
@@ -47,7 +49,7 @@ import {
   Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { ProjectAnalyticsResponse } from "@/interfaces/api";
+import { IActivity, ProjectAnalyticsResponse } from "@/interfaces/api";
 
 const ManagerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -70,6 +72,7 @@ const ManagerDashboard = () => {
   const { getManagerAnalytics, user } = useAuthStore();
   const token = useAuthStore((state) => state.token);
   const { createProject, getProjectsByManager, getProjectAnalytics, projects } = useProjectStore();
+  const { activities, getActivities, isLoading: isLoadingActivities, pushActivity } = useActivityStore();
 
 
   interface ManagerAnalytics {
@@ -78,6 +81,36 @@ const ManagerDashboard = () => {
   }
 
   const [stats, setStats] = React.useState<ManagerAnalytics | null>(null);
+
+  const derivedStats = useMemo(() => {
+    const totalProjects = projects.length;
+    const activeProjects = projects.filter((project) => project.status === "active").length;
+    const completedProjects = projects.filter((project) => project.status === "completed").length;
+
+    const totals = projects.reduce(
+      (acc, project) => {
+        const analytics = projectAnalytics[String(project._id)];
+        acc.totalTasks += analytics?.totalTasks ?? 0;
+        acc.pendingTasks += analytics?.pendingTasks ?? 0;
+        acc.upcomingDeadlines += project.deadline
+          ? new Date(project.deadline).getTime() <= Date.now() + 7 * 24 * 60 * 60 * 1000
+            ? 1
+            : 0
+          : 0;
+        return acc;
+      },
+      { totalTasks: 0, pendingTasks: 0, upcomingDeadlines: 0 }
+    );
+
+    return {
+      totalProjects,
+      activeProjects,
+      completedProjects,
+      totalTasks: totals.totalTasks,
+      pendingTasks: totals.pendingTasks,
+      upcomingDeadlines: totals.upcomingDeadlines,
+    };
+  }, [projects, projectAnalytics]);
 
 // use effect to fetch manager analytics
   useEffect(() => {
@@ -131,6 +164,67 @@ const ManagerDashboard = () => {
       }
       fetchProjectAnalytics();
     }, [projects, user, getProjectAnalytics]);
+
+    useEffect(() => {
+      const fetchActivities = async () => {
+        if (user?.role === 'manager' && user?._id) {
+          await getActivities({ page: 1, limit: 20 });
+        }
+      };
+
+      fetchActivities();
+    }, [user, getActivities]);
+
+    useEffect(() => {
+      if (!user?._id) return;
+
+      const socket = getSocket();
+      socket.emit('subscribe:user', user._id);
+
+      const onActivity = (payload: IActivity) => {
+        pushActivity(payload);
+      };
+
+      socket.on('activity:new', onActivity);
+      return () => {
+        socket.off('activity:new', onActivity);
+      };
+    }, [user?._id, pushActivity]);
+
+  const formatActivityTime = (dateValue: string) => {
+    const activityDate = new Date(dateValue);
+    if (Number.isNaN(activityDate.getTime())) return 'Unknown time';
+
+    const diffMs = Date.now() - activityDate.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+    if (diffMinutes < 1) return 'just now';
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    return activityDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const getActivityIcon = (actionType: string) => {
+    if (actionType.includes('comment')) {
+      return <FileText className="h-4 w-4 text-blue-500" />;
+    }
+
+    if (actionType.includes('created') || actionType.includes('assigned')) {
+      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+    }
+
+    return <AlertCircle className="h-4 w-4 text-orange-500" />;
+  };
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -194,7 +288,8 @@ const ManagerDashboard = () => {
         // Send invitation emails if any were provided
         if (memberEmails.length > 0) {
           try {
-            const response = await fetch(`https://epochserver.vercel.app/api/invitations/send`, {
+                                      // TODO:: Change it to .env variable when working with development
+            const response = await fetch(`http://localhost:8500/api/invitations/send`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -249,54 +344,27 @@ const ManagerDashboard = () => {
   const members = [
     {
       id: 1,
-      name: "John Doe",
-      email: "john@example.com",
+      name: "Noah Alvarez",
+      email: "noah.alvarez@example.com",
       activeTasks: 8,
       completedTasks: 24,
       projects: 3,
     },
     {
       id: 2,
-      name: "Jane Smith",
-      email: "jane@example.com",
+      name: "Priya Raman",
+      email: "priya.raman@example.com",
       activeTasks: 5,
       completedTasks: 18,
       projects: 2,
     },
     {
       id: 3,
-      name: "Mike Johnson",
-      email: "mike@example.com",
+      name: "Liam Okafor",
+      email: "liam.okafor@example.com",
       activeTasks: 6,
       completedTasks: 15,
       projects: 2,
-    },
-  ];
-
-  const recentActivities = [
-    {
-      id: 1,
-      user: "John Doe",
-      action: "completed",
-      item: "Task: Setup Database",
-      project: "E-commerce Platform",
-      time: "2 hours ago",
-    },
-    {
-      id: 2,
-      user: "Jane Smith",
-      action: "commented on",
-      item: "Task: UI Design Review",
-      project: "Mobile App Redesign",
-      time: "4 hours ago",
-    },
-    {
-      id: 3,
-      user: "Mike Johnson",
-      action: "added",
-      item: "New task: Write API docs",
-      project: "API Integration",
-      time: "1 day ago",
     },
   ];
 
@@ -304,12 +372,17 @@ const ManagerDashboard = () => {
     <>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Manager Dashboard</h1>
             <p className="text-muted-foreground mt-1">
               Manage your projects, tasks, and team members
             </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Badge variant="outline">{derivedStats.totalProjects} projects</Badge>
+              <Badge variant="outline">{stats?.totalMembers ?? 0} members</Badge>
+              <Badge variant="outline">{derivedStats.pendingTasks} pending tasks</Badge>
+            </div>
           </div>
           
           {/* Create Project Dialog */}
@@ -512,7 +585,7 @@ const ManagerDashboard = () => {
                   <FolderKanban className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats?.totalProjects}</div>
+                  <div className="text-2xl font-bold">{derivedStats.totalProjects}</div>
                   <p className="text-xs text-muted-foreground">
                     active
                   </p>
@@ -525,9 +598,9 @@ const ManagerDashboard = () => {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{}</div>
+                  <div className="text-2xl font-bold">{derivedStats.activeProjects}</div>
                   <p className="text-xs text-muted-foreground">
-                    {} completed
+                    {derivedStats.completedProjects} completed
                   </p>
                 </CardContent>
               </Card>
@@ -538,7 +611,7 @@ const ManagerDashboard = () => {
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{}</div>
+                  <div className="text-2xl font-bold">{derivedStats.pendingTasks}</div>
                   <p className="text-xs text-muted-foreground">Across all projects</p>
                 </CardContent>
               </Card>
@@ -549,7 +622,7 @@ const ManagerDashboard = () => {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{}</div>
+                  <div className="text-2xl font-bold">{derivedStats.upcomingDeadlines}</div>
                   <p className="text-xs text-muted-foreground">Next 7 days</p>
                 </CardContent>
               </Card>
@@ -587,12 +660,16 @@ const ManagerDashboard = () => {
                   <CardDescription>Your most recent active projects</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {projects.slice(0, 3).map((project) => {
+                  {projects.length === 0 ? (
+                    <div className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
+                      No projects available yet. Create your first project to start tracking team progress.
+                    </div>
+                  ) : projects.slice(0, 3).map((project) => {
                     const analytics = projectAnalytics[String(project._id)];
                     const completedTasks = analytics?.completedTasks || 0;
                     const totalTasks = analytics?.totalTasks || 0;
                     return (
-                    <div key={project.id} className="space-y-2">
+                    <div key={project._id} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium">{project.name}</p>
@@ -627,21 +704,29 @@ const ManagerDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {recentActivities.map((activity) => (
-                      <div key={activity.id} className="flex gap-3">
-                        <Activity className="h-4 w-4 mt-1 text-muted-foreground" />
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm">
-                            <span className="font-medium">{activity.user}</span>{" "}
-                            {activity.action}{" "}
-                            <span className="font-medium">{activity.item}</span>
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {activity.project} • {activity.time}
-                          </p>
-                        </div>
+                    {isLoadingActivities ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading activity...
                       </div>
-                    ))}
+                    ) : activities.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No recent activity yet.</p>
+                    ) : (
+                      activities.slice(0, 6).map((activity) => (
+                        <div key={activity._id} className="flex gap-3">
+                          <Activity className="h-4 w-4 mt-1 text-muted-foreground" />
+                          <div className="flex-1 space-y-1">
+                            <p className="text-sm">
+                              <span className="font-medium">{activity.actorName || activity.actorEmail || 'Team member'}</span>{' '}
+                              {activity.message}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {(activity.projectName || activity.targetName || 'Workspace')} • {formatActivityTime(activity.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -706,7 +791,7 @@ const ManagerDashboard = () => {
                     </div>
                   ) : (
                     projects.map((project) => (
-                    <Card key={project.id}>
+                    <Card key={project._id}>
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="space-y-1">
@@ -853,39 +938,38 @@ const ManagerDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {recentActivities.concat(recentActivities).map((activity, idx) => (
-                    <div key={`${activity.id}-${idx}`} className="flex gap-4">
+                  {isLoadingActivities ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading activity log...
+                    </div>
+                  ) : activities.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No activity available yet.</p>
+                  ) : (
+                    activities.map((activity, idx) => (
+                    <div key={activity._id} className="flex gap-4">
                       <div className="flex flex-col items-center">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 bg-background">
-                          {activity.action === "completed" ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          ) : activity.action === "commented on" ? (
-                            <FileText className="h-4 w-4 text-blue-500" />
-                          ) : (
-                            <AlertCircle className="h-4 w-4 text-orange-500" />
-                          )}
+                          {getActivityIcon(activity.actionType)}
                         </div>
-                        {idx < recentActivities.length * 2 - 1 && (
+                        {idx < activities.length - 1 && (
                           <div className="w-px h-12 bg-border" />
                         )}
                       </div>
                       <div className="flex-1 space-y-1 pb-8">
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium">{activity.user}</p>
-                          <p className="text-xs text-muted-foreground">{activity.time}</p>
+                          <p className="text-sm font-medium">{activity.actorName || activity.actorEmail || 'Team member'}</p>
+                          <p className="text-xs text-muted-foreground">{formatActivityTime(activity.createdAt)}</p>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {activity.action}{" "}
-                          <span className="font-medium text-foreground">
-                            {activity.item}
-                          </span>
+                          {activity.message}
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          {activity.project}
+                          {activity.projectName || activity.actionType}
                         </Badge>
                       </div>
                     </div>
-                  ))}
+                  ))) }
                 </div>
               </CardContent>
             </Card>

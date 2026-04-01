@@ -2,6 +2,7 @@ import { api } from "@/lib/axios";
 import { ApiResponse } from "@/types";
 import {
   CreateTaskRequest,
+  BulkTaskStatusUpdateRequest,
   IUserResponse,
   ITask,
   UpdateTaskRequest,
@@ -16,6 +17,13 @@ import {
   GetProjectsByManagerResponse,
   ProjectAnalyticsResponse,
   IComment,
+  IActivity,
+  INotification,
+  ProjectListQueryParams,
+  TaskListQueryParams,
+  ActivityListQueryParams,
+  NotificationListQueryParams,
+  NotificationListResponse,
 } from "@/interfaces/api";
 
 export const authApi = {
@@ -59,7 +67,8 @@ export const authApi = {
 
 export const taskApi = {
   // Define task-related API methods here
-  getTasks: async () => await api.get<ApiResponse<ITask[]>>("/tasks"),
+  getTasks: async (params?: TaskListQueryParams) =>
+    await api.get<ApiResponse<ITask[]>>("/tasks", { params }),
 
   getTask: async (id: string) =>
     await api.get<ApiResponse<ITask>>(`/tasks/${id}`),
@@ -78,22 +87,28 @@ export const taskApi = {
     await api.patch<ApiResponse<ITask>>(`/tasks/${id}`, taskData),
   assignTask: async (taskId: string, memberId: string) => await api.post<ApiResponse<ITask>>('/tasks/assign', {taskId, memberId}),
 
+  bulkUpdateTaskStatus: async (payload: BulkTaskStatusUpdateRequest) =>
+    await api.patch<ApiResponse<{ matchedCount: number; modifiedCount: number }>>('/tasks/bulk-status', payload),
+
   deleteTask: async (id: string) =>
     await api.delete<ApiResponse<null>>(`/tasks/${id}`),
 };
 
 export const projectApi = {
-  getProjects: async () => await api.get<ApiResponse<IProject[]>>("/projects"),
+  getProjects: async (params?: ProjectListQueryParams) =>
+    await api.get<ApiResponse<IProject[]>>("/projects", { params }),
 
   getProject: async (id: string) =>
     await api.get<ApiResponse<IProject>>(`/projects/${id}`),
 
-  getProjectsByManager: async (managerId: string) =>
+  getProjectsByManager: async (managerId: string, params?: ProjectListQueryParams) =>
     await api.get<ApiResponse<GetProjectsByManagerResponse>>(
-      `/projects/manager/${managerId}`
+      `/projects/manager/${managerId}`,
+      { params }
     ),
 
-    getProjectsByMember: async (userId: string) => await api.get<ApiResponse<IProject[]>>(`/projects/member/${userId}/projects`),
+    getProjectsByMember: async (userId: string, params?: ProjectListQueryParams) =>
+      await api.get<ApiResponse<IProject[]>>(`/projects/member/${userId}/projects`, { params }),
 
   getProjectAnalytics: async (projectId: string) =>
     await api.get<ApiResponse<ProjectAnalyticsResponse>>(
@@ -138,4 +153,18 @@ export const commentApi = {
     await api.delete<ApiResponse<null>>(`/comments/${id}`),
   getCommentAvatar: async (authorId: string) => 
     await api.get<ApiResponse<IUserResponse>>(`/comments/avatar/${authorId}`)
+};
+
+export const activityApi = {
+  getActivities: async (params?: ActivityListQueryParams) =>
+    await api.get<ApiResponse<IActivity[]>>('/activities', { params }),
+};
+
+export const notificationApi = {
+  getNotifications: async (params?: NotificationListQueryParams) =>
+    await api.get<ApiResponse<NotificationListResponse>>('/notifications', { params }),
+  markAsRead: async (id: string) =>
+    await api.patch<ApiResponse<INotification>>(`/notifications/${id}/read`),
+  markAllAsRead: async () =>
+    await api.patch<ApiResponse<{ success: boolean }>>('/notifications/read-all'),
 };

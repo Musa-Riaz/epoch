@@ -1,7 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   LayoutDashboard, 
   FolderKanban, 
@@ -14,7 +15,9 @@ import {
   User2,
   BarChart3,
   FileText,
-  UserCog
+  UserCog,
+  Bell,
+  type LucideIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,10 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth.store";
-import {  useMemo } from "react";
-import { LucideIcon } from "lucide-react";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
 
 
 type SidebarLink = {
@@ -104,6 +104,11 @@ const sidebarLinksManager: SidebarLink[] = [
     icon: Users
   },
   {
+    title: "Notifications",
+    href: "/manager-dashboard/notifications",
+    icon: Bell
+  },
+  {
     title: "Reports",
     href: "/manager-dashboard/reports",
     icon: FileText
@@ -150,6 +155,21 @@ export function DashboardSidebar() {
     router.push("/login");
   };
 
+  const dashboardHref = useMemo(() => {
+    switch (userRole) {
+      case "manager":
+        return "/manager-dashboard";
+      case "admin":
+        return "/admin-dashboard/analytics";
+      default:
+        return "/member-dashboard";
+    }
+  }, [userRole]);
+
+  const settingsHref = userRole === "member" ? "/member-dashboard/settings" : "/profile";
+
+  const isLinkActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
   // Use useMemo to calculate links based on role
   const links = useMemo(() => {
     switch (userRole) {
@@ -170,7 +190,7 @@ export function DashboardSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/member-dashboard">
+              <Link href={dashboardHref}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Layers className="size-4" />
                 </div>
@@ -189,7 +209,7 @@ export function DashboardSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {links.map((link) => {
-                const isActive = pathname === link.href;
+                const isActive = isLinkActive(link.href);
                 const Icon = link.icon;
                 
                 return (
@@ -199,7 +219,7 @@ export function DashboardSidebar() {
                       isActive={isActive}
                       tooltip={link.title}
                     >
-                      <Link href={link.href}>
+                      <Link href={link.href} aria-current={isActive ? "page" : undefined}>
                         <Icon />
                         <span>{link.title}</span>
                       </Link>
@@ -219,10 +239,10 @@ export function DashboardSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   asChild
-                  isActive={pathname === "/member-dashboard/settings"}
+                  isActive={isLinkActive(settingsHref)}
                   tooltip="Settings"
                 >
-                  <Link href="/member-dashboard/settings">
+                  <Link href={settingsHref} aria-current={isLinkActive(settingsHref) ? "page" : undefined}>
                     <Settings />
                     <span>Settings</span>
                   </Link>

@@ -1,21 +1,31 @@
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { projectApi } from '@/lib/api';
-import { IProject, CreateProjectRequest, UpdateProjectRequest, ProjectAnalyticsResponse, IUserResponse } from '@/interfaces/api';
+import {
+  IProject,
+  CreateProjectRequest,
+  UpdateProjectRequest,
+  ProjectAnalyticsResponse,
+  IUserResponse,
+  PaginationMeta,
+  ProjectListQueryParams,
+} from '@/interfaces/api';
 import { getErrorMessage } from '@/utils/helpers.utils';
 
 interface ProjectState {
   projects: IProject[];
   currentProject: IProject | null;
+  pagination: PaginationMeta | null;
+  managerOverview: { totalProjects: number; totalMembers: number } | null;
   isLoading: boolean;
   error: string | null;
 }
 
 interface ProjectActions {
-  getProjects: () => Promise<void>;
+  getProjects: (params?: ProjectListQueryParams) => Promise<void>;
   getProject: (id: string) => Promise<IProject | null>;
-  getProjectsByManager: (managerId: string) => Promise<void>;
-  getProjectsByMember: (userId: string) => Promise<void>;
+  getProjectsByManager: (managerId: string, params?: ProjectListQueryParams) => Promise<void>;
+  getProjectsByMember: (userId: string, params?: ProjectListQueryParams) => Promise<void>;
   getProjectAnalytics: (projectId: string) => Promise<ProjectAnalyticsResponse | void>;
   createProject: (projectData: CreateProjectRequest) => Promise<IProject | null>;
   updateProject: (id: string, projectData: UpdateProjectRequest) => Promise<IProject | null>;
@@ -36,15 +46,21 @@ export const useProjectStore = create<ProjectStore>()(
         // Initial state
         projects: [],
         currentProject: null,
+        pagination: null,
+        managerOverview: null,
         isLoading: false,
         error: null,
 
         // Actions
-        getProjects: async () => {
+        getProjects: async (params) => {
           set({ isLoading: true, error: null });
           try {
-            const response = await projectApi.getProjects();
-            set({ projects: response.data.data, isLoading: false });
+            const response = await projectApi.getProjects(params);
+            set({
+              projects: response.data.data,
+              pagination: response.data.pagination ?? null,
+              isLoading: false,
+            });
           } catch (err) {
             set({ error: getErrorMessage(err), isLoading: false });
           }
@@ -63,21 +79,33 @@ export const useProjectStore = create<ProjectStore>()(
           }
         },
 
-        getProjectsByManager: async (managerId: string) => {
+        getProjectsByManager: async (managerId: string, params) => {
           set({ isLoading: true, error: null });
           try {
-            const response = await projectApi.getProjectsByManager(managerId);
-            set({ projects: response.data.data.projects, isLoading: false });
+            const response = await projectApi.getProjectsByManager(managerId, params);
+            set({
+              projects: response.data.data.projects,
+              managerOverview: {
+                totalProjects: response.data.data.totalProjects,
+                totalMembers: response.data.data.totalMembers,
+              },
+              pagination: response.data.pagination ?? null,
+              isLoading: false,
+            });
           } catch (err) {
             set({ error: getErrorMessage(err), isLoading: false });
           }
         },
 
-        getProjectsByMember: async (userId: string) => {
+        getProjectsByMember: async (userId: string, params) => {
           set({ isLoading: true, error: null });
           try {
-            const response = await projectApi.getProjectsByMember(userId);
-            set({ projects: response.data.data, isLoading: false });
+            const response = await projectApi.getProjectsByMember(userId, params);
+            set({
+              projects: response.data.data,
+              pagination: response.data.pagination ?? null,
+              isLoading: false,
+            });
           } catch (err) {
             set({ error: getErrorMessage(err), isLoading: false });
           }

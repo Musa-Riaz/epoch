@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProjectStore } from "@/stores/project.store";
 import { useAuthStore } from "@/stores/auth.store";
@@ -45,9 +46,9 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { DialogTitle } from "@radix-ui/react-dialog";
-import { IUser } from "../../../../../../server/src/infrastructure/database/models/user.model";
 import toast from "react-hot-toast";
 import { Label } from "@radix-ui/react-label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,6 +61,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { IUserResponse } from "@/interfaces/api";
+import { TaskCardSkeleton } from "@/components/ui/skeleton-loaders";
 
 export default function ManagerTasks() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,17 +81,23 @@ export default function ManagerTasks() {
   const [members, setMembers] = useState<IUserResponse[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [isCreateTaskDialogOpen, setIsCreateTaskDialogOpen] = useState(false);
+  const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [currentTaskId, setCurrentTaskId] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [bulkStatus, setBulkStatus] = useState<"todo" | "in-progress" | "done" | "">("");
   const tasksPerPage = 10;
 
   const {
     getTasksByProject,
     getTasks,
     tasks,
+    isLoading: isTaskLoading,
+    error: taskError,
     getUserByTask,
     assignTask,
+    bulkUpdateTaskStatus,
     createTask,
     updateTask,
     deleteTask,
@@ -218,7 +226,9 @@ export default function ManagerTasks() {
         priority,
         assignedTo: selectedMemberId || undefined,
       });
-      if (res) toast.success("Task created successfully");
+      if (res) {
+        toast.success("Task created successfully");
+      }
       // after creating task, refresh task list
       if (selectedProject === "all") {
         await getTasks();
@@ -232,9 +242,11 @@ export default function ManagerTasks() {
       setPriority("");
       setSelectedMemberId("");
       setStatus("");
+      return Boolean(res);
     } catch (err) {
       console.error("Failed to create task:", err);
       toast.error("Failed to create task");
+      return false;
     }
   };
 
@@ -264,9 +276,11 @@ export default function ManagerTasks() {
       setPriority("");
       setSelectedMemberId("");
       setStatus("");
+      return Boolean(res);
     } catch (err) {
       console.log(err);
       toast.error("Failed to update task");
+      return false;
     }
   };
 
@@ -286,6 +300,48 @@ export default function ManagerTasks() {
       console.log(err);
       toast.error("Failed to delete task");
     }
+  };
+
+  const handleBulkStatusUpdate = async () => {
+    if (!bulkStatus || selectedTaskIds.length === 0) return;
+    try {
+      const success = await bulkUpdateTaskStatus(selectedTaskIds, bulkStatus);
+      if (!success) {
+        toast.error("Failed to update task statuses");
+        return;
+      }
+
+      toast.success(`Updated ${selectedTaskIds.length} task(s) to ${bulkStatus}`);
+      setSelectedTaskIds([]);
+      setBulkStatus("");
+
+      if (selectedProject === "all") {
+        await getTasks();
+      } else {
+        await getTasksByProject(selectedProject);
+      }
+    } catch {
+      toast.error("Failed to update task statuses");
+    }
+  };
+
+  const toggleTaskSelection = (taskId: string, checked: boolean) => {
+    setSelectedTaskIds((prev) => {
+      if (checked) {
+        return prev.includes(taskId) ? prev : [...prev, taskId];
+      }
+      return prev.filter((id) => id !== taskId);
+    });
+  };
+
+  const togglePageSelection = (checked: boolean) => {
+    const pageTaskIds = paginatedTasks.map((task) => String(task._id));
+    setSelectedTaskIds((prev) => {
+      if (checked) {
+        return Array.from(new Set([...prev, ...pageTaskIds]));
+      }
+      return prev.filter((id) => !pageTaskIds.includes(id));
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -348,7 +404,13 @@ export default function ManagerTasks() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedTaskIds([]);
   }, [selectedTab, searchQuery, priorityFilter, assigneeFilter, selectedProject]);
+
+  useEffect(() => {
+    const taskIdSet = new Set(tasks.map((task) => String(task._id)));
+    setSelectedTaskIds((prev) => prev.filter((id) => taskIdSet.has(id)));
+  }, [tasks]);
 
   const stats = {
     total: tasks.length,
@@ -357,8 +419,14 @@ export default function ManagerTasks() {
     done: tasks.filter((t) => t.status === "done").length,
   };
 
+  const completionRate = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
+  const projectNameById = new Map(projects.map((project) => [String(project._id), project.name]));
+
   // Note: assignedTo is ObjectId, will need backend to populate user data
   const assignees: string[] = [];
+  const pageTaskIds = paginatedTasks.map((task) => String(task._id));
+  const allPageSelected =
+    pageTaskIds.length > 0 && pageTaskIds.every((taskId) => selectedTaskIds.includes(taskId));
 
   return (
     <div className=" space-y-6">
@@ -369,9 +437,14 @@ export default function ManagerTasks() {
           <p className="text-muted-foreground mt-1">
             Create, assign, and monitor tasks across all projects
           </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Badge variant="outline">{stats.total} tasks</Badge>
+            <Badge variant="outline">{completionRate}% completed</Badge>
+            <Badge variant="outline">{projects.length} projects</Badge>
+          </div>
         </div>
         <div className="flex flex-row gap-2">
-          <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
+          <Dialog open={isCreateTaskDialogOpen} onOpenChange={setIsCreateTaskDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="w-4 h-4" />
@@ -499,11 +572,13 @@ export default function ManagerTasks() {
                     <Button
                       type="submit"
                       className="hover:cursor-pointer"
-                      onClick={(e) => {
-                        handleCreateTask(e);
-                        setIsTaskDialogOpen(false);
+                      onClick={async (e) => {
+                        const success = await handleCreateTask(e);
+                        if (success) {
+                          setIsCreateTaskDialogOpen(false);
+                        }
                       }}
-                      disabled={!priority}
+                      disabled={!priority || !projectId || !title.trim()}
                     >
                       Create Task
                     </Button>
@@ -536,6 +611,12 @@ export default function ManagerTasks() {
           </Select>
         </div>
       </div>
+
+      {taskError ? (
+        <Alert variant="destructive">
+          <AlertDescription>{taskError}</AlertDescription>
+        </Alert>
+      ) : null}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -635,13 +716,71 @@ export default function ManagerTasks() {
 
         <TabsContent value={selectedTab} className="mt-6 space-y-4 ">
 
-          {paginatedTasks.map((task) => (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={allPageSelected}
+                    onCheckedChange={(checked) => togglePageSelection(Boolean(checked))}
+                    aria-label="Select all tasks on current page"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    Select all on this page ({pageTaskIds.length})
+                  </span>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <div className="text-sm text-muted-foreground">
+                    {selectedTaskIds.length} task(s) selected
+                  </div>
+                  <Select
+                    value={bulkStatus}
+                    onValueChange={(value) =>
+                      setBulkStatus(value as "todo" | "in-progress" | "done")
+                    }
+                  >
+                    <SelectTrigger className="w-full sm:w-[200px]">
+                      <SelectValue placeholder="Change status to..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todo">To Do</SelectItem>
+                      <SelectItem value="in-progress">In Progress</SelectItem>
+                      <SelectItem value="done">Done</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={handleBulkStatusUpdate}
+                    disabled={selectedTaskIds.length === 0 || !bulkStatus}
+                  >
+                    Apply to Selected
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {isTaskLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <TaskCardSkeleton key={`task-loading-${index}`} />
+              ))}
+            </div>
+          ) : paginatedTasks.map((task) => (
             <Card
               key={String(task?._id)}
               className="hover:shadow-lg transition-shadow"
             >
               <CardHeader>
                 <div className="flex items-start gap-4">
+                  <div className="pt-1">
+                    <Checkbox
+                      checked={selectedTaskIds.includes(String(task._id))}
+                      onCheckedChange={(checked) =>
+                        toggleTaskSelection(String(task._id), Boolean(checked))
+                      }
+                      aria-label={`Select task ${task.title}`}
+                    />
+                  </div>
                   <div className="pt-1">{getStatusIcon(task.status)}</div>
                   <div className="flex-1">
                     <div className="flex items-start justify-between gap-4">
@@ -673,7 +812,7 @@ export default function ManagerTasks() {
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckSquare className="w-4 h-4" />
-                        <span>Project Name: {String(task.title)}</span>
+                        <span>Project Name: {projectNameById.get(String(task.projectId)) || "Unknown project"}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4" />
@@ -686,9 +825,9 @@ export default function ManagerTasks() {
                               } ${
                                 taskAssignees[String(task.assignedTo)]?.lastName
                               }`
-                            : task.assignedTo 
-                            ? "Unassigned"
-                            : " Loading..."}
+                            : task.assignedTo
+                            ? " Loading..."
+                            : " Unassigned"}
                         </span>
                       </div>
                       {task.dueDate && (
@@ -740,11 +879,20 @@ export default function ManagerTasks() {
                         </AlertDialogContent>
                       </AlertDialog>
                       <Dialog
-                        open={
-                          isTaskDialogOpen && currentTaskId === String(task._id)
-                        }
+                        open={editTaskId === String(task._id)}
                         onOpenChange={(open) => {
-                          setIsTaskDialogOpen(open);
+                          if (open) {
+                            setEditTaskId(String(task._id));
+                            setCurrentTaskId(String(task._id));
+                            setTitle(task.title || "");
+                            setDescription(task.description || "");
+                            setProjectId(String(task.projectId || ""));
+                            setPriority(task.priority || "");
+                            setSelectedMemberId(String(task.assignedTo || ""));
+                            setStatus(task.status || "");
+                          } else {
+                            setEditTaskId(null);
+                          }
                         }}
                       >
                         <DialogTrigger asChild>
@@ -814,7 +962,7 @@ export default function ManagerTasks() {
                                   Select Team Member
                                 </Label>
                                 <Select
-                                  value={String(task?.assignedTo)}
+                                  value={selectedMemberId}
                                   onValueChange={setSelectedMemberId}
                                 >
                                   <SelectTrigger className="w-full">
@@ -837,7 +985,7 @@ export default function ManagerTasks() {
                                   Select Priority
                                 </Label>
                                 <Select
-                                  value={task?.priority}
+                                  value={priority}
                                   onValueChange={setPriority}
                                 >
                                   <SelectTrigger className="w-full">
@@ -858,7 +1006,7 @@ export default function ManagerTasks() {
                                 Select Status
                               </Label>
                               <Select
-                                value={task.status}
+                                value={status}
                                 onValueChange={setStatus}
                               >
                                 <SelectTrigger className="w-full">
@@ -888,9 +1036,11 @@ export default function ManagerTasks() {
                                 <Button
                                   type="submit"
                                   className="hover:cursor-pointer"
-                                  onClick={(e) => {
-                                    handleUpdateTask(e, String(task?._id));
-                                    setIsTaskDialogOpen(false);
+                                  onClick={async (e) => {
+                                    const success = await handleUpdateTask(e, String(task?._id));
+                                    if (success) {
+                                      setEditTaskId(null);
+                                    }
                                   }}
                                 >
                                   Edit Task

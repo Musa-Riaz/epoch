@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,10 @@ interface InvitationResult {
   added?: boolean;
 }
 
+interface ApiErrorResponse {
+  error?: string;
+}
+
 interface ProjectInvitationsProps {
   projectId: string;
   projectName: string;
@@ -53,11 +57,15 @@ export default function ProjectInvitations({ projectId, projectName }: ProjectIn
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [inviteResults, setInviteResults] = useState<InvitationResult[]>([]);
 
-  useEffect(() => {
-    fetchInvitations();
-  }, [projectId]);
+  const getApiErrorMessage = (error: unknown, fallback: string) => {
+    if (axios.isAxiosError<ApiErrorResponse>(error) && error.response?.data?.error) {
+      return error.response.data.error;
+    }
 
-  const fetchInvitations = async () => {
+    return fallback;
+  };
+
+  const fetchInvitations = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(
@@ -72,16 +80,20 @@ export default function ProjectInvitations({ projectId, projectName }: ProjectIn
       if (response.data.success) {
         setInvitations(response.data.data);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to fetch invitations:", error);
       // Don't show error toast on initial load if there are no invitations
-      if (error.response?.status !== 404) {
+      if (!(axios.isAxiosError(error) && error.response?.status === 404)) {
         toast.error("Failed to load invitations");
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchInvitations();
+  }, [fetchInvitations]);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -177,8 +189,8 @@ export default function ProjectInvitations({ projectId, projectName }: ProjectIn
           });
         }
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || "Failed to send invitations";
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, "Failed to send invitations");
       toast.error(errorMessage);
     } finally {
       setSending(false);
@@ -201,8 +213,8 @@ export default function ProjectInvitations({ projectId, projectName }: ProjectIn
         toast.success("Invitation cancelled");
         await fetchInvitations();
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || "Failed to cancel invitation";
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, "Failed to cancel invitation");
       toast.error(errorMessage);
     } finally {
       setCancellingId(null);

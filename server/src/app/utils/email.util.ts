@@ -139,7 +139,6 @@ export async function sendInvitationEmail({
     
     return true;
   } catch (error) {
-    console.log('this is the password',process.env.SMTP_PASS)
     console.error('❌ Failed to send invitation email:', error);
     return false;
   }

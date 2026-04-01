@@ -8,6 +8,8 @@ import taskRoutes from './app/routes/task.routes';
 import commentRoutes from './app/routes/comment.routes';
 import teamRoutes from './app/routes/team.routes';
 import invitationRoutes from './app/routes/invitation.routes';
+import activityRoutes from './app/routes/activity.routes';
+import notificationRoutes from './app/routes/notification.routes';
 import cors from 'cors'
 import morgan from 'morgan'
 import http from 'http'
@@ -24,6 +26,20 @@ const io = new SocketIOServer(server, {
     origin: process.env.CORS_ORIGIN ||  "*",
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   },
+});
+
+io.on('connection', (socket) => {
+  socket.on('subscribe:user', (userId: string) => {
+    if (userId) {
+      socket.join(`user:${userId}`);
+    }
+  });
+
+  socket.on('subscribe:project', (projectId: string) => {
+    if (projectId) {
+      socket.join(`project:${projectId}`);
+    }
+  });
 });
 
 // MongoDB connection handler for serverless
@@ -73,6 +89,11 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/invitations', invitationRoutes);
+app.use('/api/activities', activityRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use("/api/health-check", (req, res) => {
+  res.status(200).json({ status: 'ok' });
+})
 
 app.use(errorMiddleware);
 

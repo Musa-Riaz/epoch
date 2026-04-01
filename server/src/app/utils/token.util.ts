@@ -1,7 +1,7 @@
 import jwt, { JwtPayload, SignOptions, Secret } from 'jsonwebtoken';
 import crypto from 'crypto';
 
-const JWT_SECRET: Secret = process.env.JWT_SECRET;
+const JWT_SECRET: Secret = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
 
 export interface TokenPayload extends JwtPayload {
     userId: string;

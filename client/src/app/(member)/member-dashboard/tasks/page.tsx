@@ -33,7 +33,6 @@ export default function MyTasks() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const {user} = useAuthStore();
   const {getTasksByAssignedUser, tasks} = useTaskStore();
   const { projects, getProjects }= useProjectStore();
@@ -94,12 +93,7 @@ export default function MyTasks() {
   // fetch projects on component mount
   useEffect(() => {
     const fetchProjects = async () => {
-      setIsLoadingProjects(true);
-      try {
-        await getProjects();
-      } finally {
-        setIsLoadingProjects(false);
-      }
+      await getProjects();
     }
     fetchProjects()
   }, [getProjects])

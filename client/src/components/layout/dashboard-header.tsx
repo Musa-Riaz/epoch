@@ -16,13 +16,25 @@ import { Badge } from "@/components/ui/badge";
 import { useTheme } from "next-themes";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuthStore } from "@/stores/auth.store";
+import { useNotificationStore } from "@/stores/notification.store";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { useEffect } from "react";
+import { getSocket } from "@/lib/socket";
+import { INotification } from "@/interfaces/api";
 
 export function DashboardHeader() {
   const { theme, setTheme } = useTheme();
   const { logout } = useAuthStore()
   const user = useAuthStore((state) => state.user);
+  const {
+    notifications,
+    unreadCount,
+    getNotifications,
+    markAsRead,
+    markAllAsRead,
+    pushNotification,
+  } = useNotificationStore();
   const router = useRouter(); 
 
 
@@ -33,22 +45,66 @@ export function DashboardHeader() {
 
   }
 
+  useEffect(() => {
+    if (user?._id) {
+      void getNotifications({ page: 1, limit: 10 });
+    }
+  }, [user?._id, getNotifications]);
+
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const socket = getSocket();
+    socket.emit('subscribe:user', user._id);
+
+    const onNotification = (payload: INotification) => {
+      pushNotification(payload);
+    };
+
+    socket.on('notification:new', onNotification);
+    return () => {
+      socket.off('notification:new', onNotification);
+    };
+  }, [user?._id, pushNotification]);
+
+  const formatNotificationTime = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const diffMinutes = Math.floor((Date.now() - date.getTime()) / (1000 * 60));
+    if (diffMinutes < 1) return 'now';
+    if (diffMinutes < 60) return `${diffMinutes}m`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d`;
+  };
+
+  const notificationsHref = user?.role === "manager"
+    ? "/manager-dashboard/notifications"
+    : "/member-dashboard";
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-16 items-center gap-4 px-4 justify-between">
+    <header
+      className="sticky top-0 z-50 w-full border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75"
+      role="banner"
+    >
+      <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
  
 
         
 
         {/* Search */}
-        <div className="flex-1 max-w-md flex flex-row items-center gap-2">
-{/* Sidebar trigger */}
-    <SidebarTrigger className="hover:cursor-pointer" />
+        <div className="flex max-w-md flex-1 flex-row items-center gap-2">
+          <SidebarTrigger className="hover:cursor-pointer" aria-label="Toggle sidebar" />
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search for anything..."
               className="pl-10 bg-muted/50"
+              aria-label="Search workspace"
             />
           </div>
         </div>
@@ -61,6 +117,7 @@ export function DashboardHeader() {
             size="icon"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="hover:cursor-pointer"
+            aria-label="Toggle theme"
           >
             <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -70,53 +127,67 @@ export function DashboardHeader() {
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon" className="relative" aria-label="Open notifications">
                 <Bell className="h-5 w-5" />
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                >
-                  3
-                </Badge>
+                {unreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-1 -right-1 h-5 min-w-5 rounded-full p-0 px-1 flex items-center justify-center text-xs"
+                  >
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Badge>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+              <DropdownMenuLabel className="flex items-center justify-between">
+                <span>Notifications</span>
+                {unreadCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => {
+                      void markAllAsRead();
+                    }}
+                  >
+                    Mark all read
+                  </Button>
+                )}
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <div className="max-h-[300px] overflow-y-auto">
-                <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
-                  <div className="flex items-center gap-2 w-full">
-                    <div className="w-2 h-2 rounded-full bg-blue-500" />
-                    <span className="font-medium text-sm">New task assigned</span>
-                    <span className="ml-auto text-xs text-muted-foreground">2m ago</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground pl-4">
-                    You have been assigned to Mobile App Design
-                  </p>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
-                  <div className="flex items-center gap-2 w-full">
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <span className="font-medium text-sm">Task completed</span>
-                    <span className="ml-auto text-xs text-muted-foreground">1h ago</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground pl-4">
-                    Research task has been marked as complete
-                  </p>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
-                  <div className="flex items-center gap-2 w-full">
-                    <div className="w-2 h-2 rounded-full bg-purple-500" />
-                    <span className="font-medium text-sm">New comment</span>
-                    <span className="ml-auto text-xs text-muted-foreground">3h ago</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground pl-4">
-                    John commented on Wireframes
-                  </p>
-                </DropdownMenuItem>
+                {notifications.length === 0 ? (
+                  <div className="px-3 py-5 text-sm text-muted-foreground">No notifications yet.</div>
+                ) : (
+                  notifications.map((notification) => (
+                    <DropdownMenuItem
+                      key={notification._id}
+                      className="flex flex-col items-start gap-1 py-3"
+                      onClick={() => {
+                        if (!notification.isRead) {
+                          void markAsRead(notification._id);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <div className={`w-2 h-2 rounded-full ${notification.isRead ? 'bg-gray-300' : 'bg-blue-500'}`} />
+                        <span className="font-medium text-sm">{notification.title}</span>
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          {formatNotificationTime(notification.createdAt)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground pl-4">{notification.message}</p>
+                    </DropdownMenuItem>
+                  ))
+                )}
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-center justify-center text-primary">
+              <DropdownMenuItem
+                className="text-center justify-center text-primary"
+                onClick={() => {
+                  router.push(notificationsHref);
+                }}
+              >
                 View all notifications
               </DropdownMenuItem>
             </DropdownMenuContent>

@@ -25,6 +25,12 @@ export interface ApiResponse<T> {
   data: T;
   error?: string; 
   
-  details?: any; 
+  details?: unknown; 
   message?: string;
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }

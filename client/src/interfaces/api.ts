@@ -1,10 +1,51 @@
-import { IProject } from '../../../server/src/infrastructure/database/models/project.model';
-import { ITeam } from '../../../server/src/infrastructure/database/models/team.model';
-import { IComment } from '../../../server/src/infrastructure/database/models/comment.model';
-import { ITask } from '../../../server/src/infrastructure/database/models/task.model';
+// ========================================
+// Core Entity Interfaces (replicate server models)
+// ========================================
 
-// Re-export server interfaces
-export type { ITask, IProject, ITeam, IComment };
+export interface IProject {
+  _id: string;
+  name: string;
+  description: string;
+  owner: string;
+  team: string[];
+  status: 'active' | 'completed' | 'archived';
+  deadline?: Date | string;
+  progress: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface ITask {
+  _id: string;
+  title: string;
+  description?: string;
+  projectId: string;
+  assignedTo?: string;
+  status: 'todo' | 'in-progress' | 'done';
+  priority: 'low' | 'medium' | 'high';
+  media?: string[];
+  dueDate?: Date | string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface ITeam {
+  _id: string;
+  name: string;
+  members: string[];
+  projects: string[];
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface IComment {
+  _id: string;
+  taskId: string;
+  authorId: string;
+  content: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
 
 export interface IUserResponse {
     _id: string;
@@ -90,6 +131,11 @@ export interface UpdateTaskRequest {
 
 }
 
+export interface BulkTaskStatusUpdateRequest {
+  taskIds: string[];
+  status: 'todo' | 'in-progress' | 'done';
+}
+
 export interface IProjectResponse {
   _id: string;
   name: string;
@@ -105,8 +151,114 @@ export interface IProjectResponse {
 }
 
 export interface GetProjectsByManagerResponse {
+  totalProjects: number;
+  totalMembers: number;
   projects: IProject[];
-  
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ProjectListQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: 'active' | 'completed' | 'archived';
+  minProgress?: number;
+  maxProgress?: number;
+  deadlineFrom?: string;
+  deadlineTo?: string;
+  sortBy?: 'createdAt' | 'updatedAt' | 'deadline' | 'name' | 'progress';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface TaskListQueryParams {
+  page?: number;
+  limit?: number;
+  projectId?: string;
+  assignedTo?: string;
+  status?: 'todo' | 'in-progress' | 'done';
+  priority?: 'low' | 'medium' | 'high';
+  search?: string;
+  sortBy?: 'createdAt' | 'updatedAt' | 'dueDate' | 'priority' | 'status' | 'title';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface IActivity {
+  _id: string;
+  actorId: string;
+  actorName?: string;
+  actorEmail?: string;
+  actorRole?: string;
+  actionType:
+    | 'project.created'
+    | 'project.status-updated'
+    | 'task.created'
+    | 'task.updated'
+    | 'task.deleted'
+    | 'task.assigned'
+    | 'task.bulk-status-updated'
+    | 'comment.created';
+  targetType: 'project' | 'task' | 'comment';
+  targetId: string;
+  projectId?: string;
+  projectName?: string;
+  targetName?: string;
+  message: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ActivityListQueryParams {
+  page?: number;
+  limit?: number;
+  projectId?: string;
+  actionType?:
+    | 'project.created'
+    | 'project.status-updated'
+    | 'task.created'
+    | 'task.updated'
+    | 'task.deleted'
+    | 'task.assigned'
+    | 'task.bulk-status-updated'
+    | 'comment.created';
+}
+
+export interface INotification {
+  _id: string;
+  userId: string;
+  type:
+    | 'task.assigned'
+    | 'task.created'
+    | 'task.updated'
+    | 'task.bulk-status-updated'
+    | 'comment.created'
+    | 'project.created'
+    | 'project.status-updated';
+  title: string;
+  message: string;
+  isRead: boolean;
+  relatedType: 'project' | 'task' | 'comment';
+  relatedId: string;
+  projectId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationListQueryParams {
+  page?: number;
+  limit?: number;
+  unreadOnly?: boolean;
+}
+
+export interface NotificationListResponse {
+  items: INotification[];
+  unreadCount: number;
 }
 
 export interface ProjectAnalyticsResponse {

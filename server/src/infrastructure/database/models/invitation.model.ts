@@ -10,6 +10,7 @@ export interface IInvitation extends Document {
   expiresAt: Date;
   createdAt: Date;
   updatedAt: Date;
+  isValid(): boolean;
 }
 
 const invitationSchema = new Schema<IInvitation>({
@@ -49,7 +50,6 @@ const invitationSchema = new Schema<IInvitation>({
 
 // Index for faster queries
 invitationSchema.index({ email: 1, projectId: 1 });
-invitationSchema.index({ token: 1 });
 invitationSchema.index({ expiresAt: 1 });
 
 // Method to check if invitation is valid

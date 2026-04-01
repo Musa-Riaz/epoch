@@ -1,13 +1,14 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { taskApi } from "@/lib/api";
-import { CreateTaskRequest, IUserResponse, UpdateTaskRequest } from "@/interfaces/api";
+import { CreateTaskRequest, IUserResponse, PaginationMeta, TaskListQueryParams, UpdateTaskRequest } from "@/interfaces/api";
 import { ITask } from "@/interfaces/api";
 import { getErrorMessage } from "@/utils/helpers.utils";
 
 interface TaskState {
     task: ITask | null;
     tasks: ITask[];
+    pagination: PaginationMeta | null;
     isLoading: boolean;
     error: string | null;
 }
@@ -16,11 +17,12 @@ interface TaskActions {
     createTask: (taskData: CreateTaskRequest) => Promise<ITask | null>;
     updateTask: (id: string, taskData: UpdateTaskRequest) => Promise<ITask | null>;
     deleteTask: (id: string) => Promise<boolean>;
-    getTasks: () => Promise<ITask[] | null>;
+    getTasks: (params?: TaskListQueryParams) => Promise<ITask[] | null>;
     getTasksByProject: (projectId: string) => Promise<ITask[] | null>;
     getTasksByAssignedUser: (userId: string) => Promise<ITask[] | null>;
     getUserByTask: (taskId: string) => Promise<IUserResponse | null>;
     assignTask: (taskId: string, memberId: string) => Promise<ITask | null>;
+    bulkUpdateTaskStatus: (taskIds: string[], status: 'todo' | 'in-progress' | 'done') => Promise<boolean>;
 }
 
 export const useTaskStore = create<TaskState & TaskActions>()(
@@ -29,6 +31,7 @@ export const useTaskStore = create<TaskState & TaskActions>()(
             (set) => ({
                 task: null,
                 tasks: [],
+                pagination: null,
                 isLoading: false,
                 error: null,
                 createTask: async (taskData) => {
@@ -64,11 +67,12 @@ export const useTaskStore = create<TaskState & TaskActions>()(
                         return false;
                     }
                 },
-                getTasks: async () => {
+                getTasks: async (params) => {
                     set({ isLoading: true });
                     try {
-                        const response = (await taskApi.getTasks()).data.data;
-                        set({ tasks: response, isLoading: false });
+                        const res = (await taskApi.getTasks(params)).data;
+                        const response = res.data;
+                        set({ tasks: response, pagination: res.pagination ?? null, isLoading: false });
                         return response;
                     } catch (error) {
                         set({ error: getErrorMessage(error), isLoading: false });
@@ -132,6 +136,22 @@ export const useTaskStore = create<TaskState & TaskActions>()(
                     catch(err){
                         set({ error: getErrorMessage(err), isLoading: false });
                         return null;
+                    }
+                },
+                bulkUpdateTaskStatus: async (taskIds, status) => {
+                    set({ isLoading: true });
+                    try {
+                        await taskApi.bulkUpdateTaskStatus({ taskIds, status });
+                        set((state) => ({
+                            tasks: state.tasks.map((task) =>
+                                taskIds.includes(String(task._id)) ? { ...task, status } : task
+                            ),
+                            isLoading: false,
+                        }));
+                        return true;
+                    } catch (err) {
+                        set({ error: getErrorMessage(err), isLoading: false });
+                        return false;
                     }
                 }
             }),

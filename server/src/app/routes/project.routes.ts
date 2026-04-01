@@ -12,20 +12,29 @@ import {
   getProjectsByMember
 } from '../controllers/project.controller';
 import { authMiddleware } from '../middlewares/authMiddleware';
-import { validateRequest, projectSchema } from '../validators/schemas';
+import {
+  managerParamSchema,
+  memberParamSchema,
+  objectIdParamSchema,
+  projectSchema,
+  projectStatusSchema,
+  projectUpdateSchema,
+  validateParams,
+  validateRequest,
+} from '../validators/schemas';
 
 const router = Router();
 
 router.post('/', authMiddleware, validateRequest(projectSchema), createProject);
 router.get('/', authMiddleware, getProjects);
-router.get('/:id', authMiddleware, getProjectById);
-router.get('/manager/:id', authMiddleware, getProjectsByManager);
-router.get('/:id/analytics', authMiddleware, getProjectAnalytics);
-router.get('/members/:id/projects', authMiddleware, getMembersByProject);
-router.get('/manager/:id/projects', authMiddleware, getProjectsByManager);
-router.get('/member/:userId/projects', authMiddleware, getProjectsByMember);
-router.patch('/:id', authMiddleware, updateProject);
-router.patch('/:id/status', authMiddleware, updateProjectStatus);
-router.delete('/:id', authMiddleware, deleteProject);
+router.get('/manager/:id/projects', authMiddleware, validateParams(managerParamSchema), getProjectsByManager);
+router.get('/manager/:id', authMiddleware, validateParams(managerParamSchema), getProjectsByManager);
+router.get('/member/:userId/projects', authMiddleware, validateParams(memberParamSchema), getProjectsByMember);
+router.get('/members/:id/projects', authMiddleware, validateParams(objectIdParamSchema), getMembersByProject);
+router.get('/:id/analytics', authMiddleware, validateParams(objectIdParamSchema), getProjectAnalytics);
+router.get('/:id', authMiddleware, validateParams(objectIdParamSchema), getProjectById);
+router.patch('/:id', authMiddleware, validateParams(objectIdParamSchema), validateRequest(projectUpdateSchema), updateProject);
+router.patch('/:id/status', authMiddleware, validateParams(objectIdParamSchema), validateRequest(projectStatusSchema), updateProjectStatus);
+router.delete('/:id', authMiddleware, validateParams(objectIdParamSchema), deleteProject);
 
 export default router;

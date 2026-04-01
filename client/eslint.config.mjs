@@ -15,6 +15,7 @@ const eslintConfig = [
     ignores: [
       "node_modules/**",
       ".next/**",
+      "coverage/**",
       "out/**",
       "build/**",
       "next-env.d.ts"
@@ -23,7 +24,8 @@ const eslintConfig = [
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "warn", // Disable 'any' type warnings
-    }
+    },
+
   },
 ];
 

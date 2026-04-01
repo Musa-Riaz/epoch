@@ -132,7 +132,7 @@ export async function updateProfile(req: Request, res: Response) : Promise<void>
 export async function getProfile(req: Request, res: Response) : Promise<void> {
     try {
 
-        const userId = (req.body as any).userId;
+        const userId = (req.body as any)?.userId;
         if(!userId) {
             return sendError({res, error: 'Unauthorized', status: 401});
         }

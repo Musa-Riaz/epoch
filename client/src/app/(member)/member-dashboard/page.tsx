@@ -57,7 +57,6 @@ const MemberDashboard = () => {
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const { getTasksByProject, getTasksByAssignedUser } = useTaskStore();
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const {projects, getProjectsByMember} = useProjectStore();
@@ -70,15 +69,11 @@ const MemberDashboard = () => {
     useEffect(() => {
 
       const fetchProjects = async () => {
-        setIsLoadingProjects(true);
         try{
           await getProjectsByMember(String(user?._id));
         }
         catch(err){
           console.log(err);
-        }
-        finally {
-          setIsLoadingProjects(false);
         }
       }
       fetchProjects();
@@ -160,6 +155,8 @@ const MemberDashboard = () => {
     const todoTasks = tasks?.filter(task => task?.status === 'todo');
     const inProgressTasks = tasks?.filter(task => task.status === 'inProgress');
     const doneTasks = tasks?.filter(task => task.status === 'done');
+    const totalTasks = tasks?.length ?? 0;
+    const completionRate = totalTasks > 0 ? Math.round((doneTasks.length / totalTasks) * 100) : 0;
 
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
@@ -297,46 +294,6 @@ const MemberDashboard = () => {
     };
 
 
-    // const handleAddTask = async (status : 'todo' | 'in-progress' | 'done') : Promise<void> => {
-    //    try {
-    //   const res = await createTask({
-    //       projectId: '68f3bb9f6e9169a633a0ffe1', // For testing purposes
-    //       status,
-    //       title,
-    //       description,
-    //       priority,
-    //       media,
-    //     })
-    //     if(res){
-    //       // Add the new task to local state immediately
-    //       const newTask: Task = {
-    //         id: String(res._id),
-    //         priority: res.priority,
-    //         title: res.title,
-    //         description: res.description || '',
-    //         status: res.status === 'in-progress' ? 'inProgress' : res.status as 'todo' | 'done',
-    //       };
-    //       setTasks(prevTasks => [...prevTasks, newTask]);
-          
-    //       // Clear form fields
-    //       setTitle('');
-    //       setDescription('');
-    //       setPriority('medium');
-          
-    //       toast.success("Task created successfully")
-    //     }
-    //    }
-    //    catch (err: unknown) {
-    //   if (err instanceof Error) {
-    //     const axiosError = err as { response?: { data?: { error?: string } } };
-    //     const responseError = axiosError.response?.data?.error;
-    //     toast.error(responseError ?? err.message);
-    //   } else {
-    //     toast.error(String(err));
-    //   }
-    // }
-    // }
-
   return (
     <>
       <div className="space-y-6">
@@ -366,19 +323,24 @@ const MemberDashboard = () => {
             <p className="text-muted-foreground mt-1">
               Track and manage your project tasks
             </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Badge variant="outline">{totalTasks} tasks</Badge>
+              <Badge variant="outline">{completionRate}% complete</Badge>
+              <Badge variant="outline">{projects.length} projects</Badge>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2" disabled>
               <Share2 className="h-4 w-4" />
               Share
             </Button>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2" disabled>
               <Filter className="h-4 w-4" />
               Filter
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled>
                   Today
                 </Button>
               </DropdownMenuTrigger>
@@ -389,11 +351,11 @@ const MemberDashboard = () => {
                 <DropdownMenuItem>Custom Range</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button size="sm" className="gap-2">
+            <Button size="sm" className="gap-2" disabled>
               <Plus className="h-4 w-4" />
               Invite
             </Button>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" disabled>
               <Grid3x3 className="h-4 w-4" />
             </Button>
           </div>
@@ -421,6 +383,13 @@ const MemberDashboard = () => {
         {/* Kanban Board */}
         {isLoadingTasks ? (
           <KanbanBoardSkeleton />
+        ) : totalTasks === 0 ? (
+          <div className="rounded-xl border border-dashed bg-card p-10 text-center">
+            <h2 className="text-xl font-semibold tracking-tight">No assigned tasks yet</h2>
+            <p className="mx-auto mt-2 max-w-[60ch] text-sm text-muted-foreground">
+              Your task board is empty. Once your manager assigns work, tasks will appear here and you can drag cards across columns to update progress.
+            </p>
+          </div>
         ) : (
         <DndContext 
           sensors={sensors}
