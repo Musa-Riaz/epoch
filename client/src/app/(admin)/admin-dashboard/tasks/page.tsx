@@ -3,16 +3,26 @@
 import { useEffect, useState } from "react";
 import { adminApi } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckSquare, Clock, Search, AlertCircle, FileText, FolderKanban } from "lucide-react";
+import { Clock, Search, FileText, FolderKanban } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+interface AdminTask {
+  _id: string;
+  title: string;
+  status: string;
+  priority: string;
+  dueDate?: string;
+  projectId?: { name: string };
+  assignedTo?: { firstName: string; lastName: string; profilePicture?: string };
+}
+
 export default function AdminTasks() {
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [filteredTasks, setFilteredTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<AdminTask[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<AdminTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
@@ -20,10 +30,11 @@ export default function AdminTasks() {
     const fetchTasks = async () => {
       try {
         const res = await adminApi.getAllSystemTasks();
-        setTasks(res.data.data);
-        setFilteredTasks(res.data.data);
-      } catch (err) {
-        console.error(err);
+        const fetchedTasks = res.data.data as unknown as AdminTask[];
+        setTasks(fetchedTasks);
+        setFilteredTasks(fetchedTasks);
+      } catch {
+        console.error("Failed to load tasks");
       } finally {
         setLoading(false);
       }

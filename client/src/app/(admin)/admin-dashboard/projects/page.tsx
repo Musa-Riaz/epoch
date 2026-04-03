@@ -3,16 +3,26 @@
 import { useEffect, useState } from "react";
 import { adminApi } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
-import { FolderKanban, Calendar, Users, Eye, Search, AlertCircle } from "lucide-react";
+import { FolderKanban, Calendar, Users, Search, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+interface AdminProject {
+  _id: string;
+  name: string;
+  status: string;
+  description?: string;
+  deadline?: string;
+  team?: string[];
+  owner?: { firstName: string; lastName: string; profilePicture?: string };
+}
+
 export default function AdminProjects() {
-  const [projects, setProjects] = useState<any[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<AdminProject[]>([]);
+  const [filteredProjects, setFilteredProjects] = useState<AdminProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
@@ -20,10 +30,11 @@ export default function AdminProjects() {
     const fetchProjects = async () => {
       try {
         const res = await adminApi.getAllSystemProjects();
-        setProjects(res.data.data);
-        setFilteredProjects(res.data.data);
-      } catch (err) {
-        console.error(err);
+        const fetchedProjects = res.data.data as unknown as AdminProject[];
+        setProjects(fetchedProjects);
+        setFilteredProjects(fetchedProjects);
+      } catch {
+        console.error("Failed to load projects");
       } finally {
         setLoading(false);
       }

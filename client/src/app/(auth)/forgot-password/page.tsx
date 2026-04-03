@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
         toast.success("Verification code sent to your email!");
         setStep(2);
       }
-    } catch (err: any) {
+    } catch {
       // Handled by axios interceptor toast
     } finally {
       setLoading(false);
@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
         toast.success("Password reset successfully!");
         setStep(3);
       }
-    } catch (err: any) {
+    } catch {
       // Handled by axios interceptor
     } finally {
       setLoading(false);

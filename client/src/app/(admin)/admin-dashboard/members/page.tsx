@@ -21,13 +21,23 @@ import {
 } from "@/components/ui/dialog";
 import { useAuthStore } from "@/stores/auth.store";
 
+interface AdminUser {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  profilePicture?: string;
+  createdAt: string;
+}
+
 export default function AdminMembers() {
   const currentAdmin = useAuthStore(state => state.user);
-  const [users, setUsers] = useState<any[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -37,10 +47,11 @@ export default function AdminMembers() {
   const fetchUsers = async () => {
     try {
       const res = await authApi.getAllUsers();
-      setUsers(res.data.data.users);
-      setFilteredUsers(res.data.data.users);
-    } catch (err) {
-      console.error(err);
+      const fetchedUsers = (res.data.data as { users: AdminUser[] }).users;
+      setUsers(fetchedUsers);
+      setFilteredUsers(fetchedUsers);
+    } catch {
+      console.error("Failed to fetch users");
     } finally {
       setLoading(false);
     }
@@ -60,11 +71,11 @@ export default function AdminMembers() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await adminApi.deleteUser(deleteTarget._id);
+      await adminApi.deleteUser(deleteTarget._id as string);
       toast.success(`${deleteTarget.firstName} has been permanently deleted.`);
       setUsers(prev => prev.filter(u => u._id !== deleteTarget._id));
       setDeleteTarget(null);
-    } catch (err) {
+    } catch {
       // toast is handled by interceptor ideally
     } finally {
       setDeleting(false);

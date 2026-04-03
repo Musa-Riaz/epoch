@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/stores/auth.store";
-import { projectApi, authApi } from "@/lib/api";
+import { projectApi } from "@/lib/api";
 import toast from "react-hot-toast";
 import {
   Users,
@@ -108,9 +108,9 @@ export default function MembersPage() {
           projectApi.getManagerMembers(user._id),
           projectApi.getProjectsByManager(user._id),
         ]);
-        setMembers(membersRes.data.data ?? []);
-        const projs = (projectsRes.data.data as any)?.projects ?? [];
-        setProjectList(projs.map((p: any) => ({ _id: p._id, name: p.name })));
+        setMembers(membersRes.data.data as unknown as Member[] ?? []);
+        const projs = (projectsRes.data.data as unknown as Record<string, unknown>)?.projects as Array<{_id: string; name: string}> ?? [];
+        setProjectList(projs.map((p) => ({ _id: p._id, name: p.name })));
         if (projs.length > 0) setSelectedProjectId(projs[0]._id);
       } catch {
         toast.error("Failed to load team data");

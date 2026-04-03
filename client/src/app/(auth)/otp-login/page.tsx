@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Loader2, Mail, Terminal, ScanFace } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, ScanFace } from "lucide-react";
 import { api } from "@/lib/axios";
 import { useAuthStore } from "@/stores/auth.store";
 import toast from "react-hot-toast";
@@ -31,7 +31,7 @@ export default function OtpLoginPage() {
         toast.success("Login code sent to your email!");
         setStep(2);
       }
-    } catch (err: any) {
+    } catch {
       // Handled by axios interceptor toast
     } finally {
       setLoading(false);
@@ -60,7 +60,7 @@ export default function OtpLoginPage() {
             router.push('/member-dashboard');
         }
       }
-    } catch (err: any) {
+    } catch {
       // Handled by axios interceptor
     } finally {
       setLoading(false);

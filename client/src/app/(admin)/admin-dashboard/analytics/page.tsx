@@ -7,7 +7,7 @@ import { api } from "@/lib/axios";
 import { motion } from "framer-motion";
 
 export default function AdminAnalyticsPage() {
-  const [metrics, setMetrics] = useState<any>(null);
+  const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,7 +15,7 @@ export default function AdminAnalyticsPage() {
       try {
         const response = await api.get('/admin/metrics');
         setMetrics(response.data.data);
-      } catch (error) {
+      } catch {
         console.error("Failed to fetch admin metrics");
       } finally {
         setLoading(false);
@@ -54,7 +54,7 @@ export default function AdminAnalyticsPage() {
               <Users className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{metrics?.totalUsers || 0}</div>
+              <div className="text-3xl font-bold">{(metrics?.totalUsers as number) || 0}</div>
               <p className="text-xs text-muted-foreground mt-1 flex items-center">
                 <TrendingUp className="h-3 w-3 mr-1 text-emerald-500" /> +12% from last month
               </p>
@@ -69,8 +69,8 @@ export default function AdminAnalyticsPage() {
               <FolderKanban className="h-4 w-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{metrics?.totalProjects || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1 text-emerald-500">+ Active platform usage</p>
+              <div className="text-3xl font-bold">{(metrics?.totalProjects as number) || 0}</div>
+              <p className="text-xs text-emerald-500 mt-1">+ Active platform usage</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -82,7 +82,7 @@ export default function AdminAnalyticsPage() {
               <Mail className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{metrics?.totalInvitations || 0}</div>
+              <div className="text-3xl font-bold">{(metrics?.totalInvitations as number) || 0}</div>
               <p className="text-xs text-muted-foreground mt-1">Pending and tracked invites</p>
             </CardContent>
           </Card>
@@ -111,7 +111,7 @@ export default function AdminAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {metrics?.usersByRole?.map((roleGroup: any) => (
+                {(metrics?.usersByRole as Array<{_id: string; count: number}>)?.map((roleGroup) => (
                   <div key={roleGroup._id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                     <span className="font-semibold capitalize">{roleGroup._id}s</span>
                     <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">

@@ -58,7 +58,7 @@ export const authApi = {
     await api.get<ApiResponse<IUserResponse>>(`/auth/user/${id}`),
 
   getAllUsers: async () =>
-    await api.get<ApiResponse<IUserResponse[] | any>>("/auth/users"),
+    await api.get<ApiResponse<IUserResponse[] | unknown>>("/auth/users"),
 
   getManagerAnalytics: async (id: string) =>
     await api.get<ApiResponse<ManagerAnalyticsResponse>>(
@@ -140,10 +140,10 @@ export const projectApi = {
     await api.delete<ApiResponse<null>>(`/projects/${id}`),
 
   getManagerMembers: async (managerId: string) =>
-    await api.get<ApiResponse<any[]>>(`/projects/manager/${managerId}/members`),
+    await api.get<ApiResponse<Record<string, unknown>[]>>(`/projects/manager/${managerId}/members`),
 
   removeMemberFromProject: async (projectId: string, memberId: string) =>
-    await api.delete<ApiResponse<any>>(`/projects/${projectId}/members/${memberId}`),
+    await api.delete<ApiResponse<Record<string, unknown>>>(`/projects/${projectId}/members/${memberId}`),
 };
 
 export const commentApi = {
@@ -177,8 +177,8 @@ export const notificationApi = {
 };
 
 export const adminApi = {
-  getSystemMetrics: async () => await api.get<ApiResponse<any>>('/admin/metrics'),
-  getAllSystemProjects: async () => await api.get<ApiResponse<any[]>>('/admin/projects'),
-  getAllSystemTasks: async () => await api.get<ApiResponse<any[]>>('/admin/tasks'),
+  getSystemMetrics: async () => await api.get<ApiResponse<Record<string, unknown>>>('/admin/metrics'),
+  getAllSystemProjects: async () => await api.get<ApiResponse<Record<string, unknown>[]>>('/admin/projects'),
+  getAllSystemTasks: async () => await api.get<ApiResponse<Record<string, unknown>[]>>('/admin/tasks'),
   deleteUser: async (id: string) => await api.delete<ApiResponse<null>>(`/admin/users/${id}`),
 };

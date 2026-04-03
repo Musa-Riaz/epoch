@@ -19,6 +19,7 @@ interface AuthActions {
     signup: (userData: SignupRequest) => Promise<void>;
     logout: () => void;
     setUser: (user: IUserResponse) => void;
+    setCredentials: (user: IUserResponse, token: string) => void;
     getUserById: (id: string) => Promise<IUserResponse | null>;
     getAllUsers: () => Promise<IUserResponse[] | null>;
     getManagerAnalytics: (id: string) => Promise<{ totalProjects: number; totalMembers: number } | null>;
@@ -38,6 +39,9 @@ export const useAuthStore = create<AuthStore>()(
             error: null,
             setUser: (user: IUserResponse) => {
                 set({ user });
+            },
+            setCredentials: (user: IUserResponse, token: string) => {
+                set({ user, token, isAuthenticated: true });
             },
             login: async (email: string, password: string) => {
                 set({isLoading: true, error: null});
@@ -87,7 +91,7 @@ export const useAuthStore = create<AuthStore>()(
             getAllUsers: async () => {
                 set({ isLoading: true, error: null});
                 try{
-                    const response = (await authApi.getAllUsers()).data.data;
+                    const response = (await authApi.getAllUsers()).data.data as IUserResponse[];
                     set({users: response, isLoading: false})
                     return response;
                 }

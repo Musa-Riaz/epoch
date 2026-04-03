@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ArrowUpRight, BarChart3, CheckCircle2, FolderKanban, Layers, Menu, Shield, Users, X, Zap } from "lucide-react";
 
-const customEase = [0.32, 0.72, 0, 1];
+const customEase: [number, number, number, number] = [0.32, 0.72, 0, 1];
 
 const FloatingNav = () => {
   const [isOpen, setIsOpen] = useState(false);
