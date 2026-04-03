@@ -55,7 +55,7 @@ export default function AcceptInvitationPage() {
       setLoading(true);
       const response = await axios.get(
         // TODO:: Change it to .env variable when working with development
-        `http://localhost:8500/api/invitations/token/${token}`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/invitations/token/${token}`
       );
       
       if (response.data.success) {
@@ -94,8 +94,7 @@ export default function AcceptInvitationPage() {
     try {
       setAccepting(true);
       const response = await axios.post(
-        // TODO:: Change it to .env variable when working with development
-        `http://localhost:8500/api/invitations/accept`, 
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/invitations/accept`, 
         { token },
         {
           headers: {

@@ -288,8 +288,7 @@ const ManagerDashboard = () => {
         // Send invitation emails if any were provided
         if (memberEmails.length > 0) {
           try {
-                                      // TODO:: Change it to .env variable when working with development
-            const response = await fetch(`http://localhost:8500/api/invitations/send`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/invitations/send`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
