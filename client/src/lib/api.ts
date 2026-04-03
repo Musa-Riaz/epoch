@@ -137,6 +137,12 @@ export const projectApi = {
 
   deleteProject: async (id: string) =>
     await api.delete<ApiResponse<null>>(`/projects/${id}`),
+
+  getManagerMembers: async (managerId: string) =>
+    await api.get<ApiResponse<any[]>>(`/projects/manager/${managerId}/members`),
+
+  removeMemberFromProject: async (projectId: string, memberId: string) =>
+    await api.delete<ApiResponse<any>>(`/projects/${projectId}/members/${memberId}`),
 };
 
 export const commentApi = {
@@ -167,4 +173,11 @@ export const notificationApi = {
     await api.patch<ApiResponse<INotification>>(`/notifications/${id}/read`),
   markAllAsRead: async () =>
     await api.patch<ApiResponse<{ success: boolean }>>('/notifications/read-all'),
+};
+
+export const adminApi = {
+  getSystemMetrics: async () => await api.get<ApiResponse<any>>('/admin/metrics'),
+  getAllSystemProjects: async () => await api.get<ApiResponse<any[]>>('/admin/projects'),
+  getAllSystemTasks: async () => await api.get<ApiResponse<any[]>>('/admin/tasks'),
+  deleteUser: async (id: string) => await api.delete<ApiResponse<null>>(`/admin/users/${id}`),
 };

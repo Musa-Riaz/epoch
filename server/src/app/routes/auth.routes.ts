@@ -1,12 +1,21 @@
 import {Router} from 'express';
-import {signup, login, getProfile, getAllUsers, getUserById, getManagerAnalytics, updateProfile} from '../controllers/auth.controller';
+import {signup, login, getProfile, getAllUsers, getUserById, getManagerAnalytics, updateProfile, forgotPassword, resetPassword, sendLoginOtp, loginWithOtp} from '../controllers/auth.controller';
 import { authMiddleware, requireRole } from '../middlewares/authMiddleware';
 import { validateRequest, signupSchema, loginSchema } from '../validators/schemas';
 
 const router = Router();
 
+// Standard Auth
 router.post('/signup', validateRequest(signupSchema), signup);
 router.post('/login', validateRequest(loginSchema), login);
+
+// OTP & Password Reset Auth
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
+router.post('/otp/send', sendLoginOtp);
+router.post('/otp/login', loginWithOtp);
+
+// Profiles
 router.put('/updateProfile/:userId', authMiddleware, updateProfile);
 router.get('/profile', getProfile);
 

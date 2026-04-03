@@ -13,10 +13,14 @@ import {
   getProjectsForUser,
   updateProject as updateProjectService,
   updateProjectStatus as updateProjectStatusService,
+  getManagerMembersWithStats,
 } from '../services/project.service';
 import { parsePositiveInt, parseSortOrder, parseString } from '../utils/query.util';
 import { logActivity } from '../services/activity.service';
 import { createNotifications } from '../services/notification.service';
+import Project from '../../infrastructure/database/models/project.model';
+import { invalidatePattern, CacheKeys, invalidateCache } from '../utils/cache.util';
+import mongoose from 'mongoose';
 
 function parseProgressQuery(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') {
@@ -348,4 +352,47 @@ export async function deleteProject(req: Request, res: Response): Promise<void> 
   }
 }
 
+// GET /projects/manager/:managerId/members - All members across manager's projects with stats
+export async function getManagerMembers(req: Request, res: Response): Promise<void> {
+  try {
+    const { managerId } = req.params;
+    if (!managerId) return sendError({ res, error: 'Manager ID is required', status: 400 });
+    const members = await getManagerMembersWithStats(managerId);
+    return sendSuccess({ res, data: members, status: 200, message: 'Manager members fetched successfully' });
+  } catch (err) {
+    handleProjectServiceError(res, err, 'Failed to fetch manager members');
+    return;
+  }
+}
 
+// DELETE /projects/:projectId/members/:memberId - Remove a member from a specific project
+export async function removeMemberFromProject(req: Request, res: Response): Promise<void> {
+  try {
+    const { projectId, memberId } = req.params;
+    const actor = (req as any).user;
+
+    if (!mongoose.Types.ObjectId.isValid(projectId) || !mongoose.Types.ObjectId.isValid(memberId)) {
+      return sendError({ res, error: 'Invalid project or member ID', status: 400 });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) return sendError({ res, error: 'Project not found', status: 404 });
+
+    // Ensure only the project owner (manager) can remove members
+    if (project.owner.toString() !== actor?.userId) {
+      return sendError({ res, error: 'Only the project owner can remove members', status: 403 });
+    }
+
+    project.team = (project.team as any[]).filter((id: any) => id.toString() !== memberId);
+    await project.save();
+
+    // Invalidate manager member cache
+    invalidatePattern(`manager:${actor.userId}:`);
+    invalidateCache([CacheKeys.projectMembers(projectId), CacheKeys.projectById(projectId)]);
+
+    return sendSuccess({ res, data: project, status: 200, message: 'Member removed from project successfully' });
+  } catch (err) {
+    handleProjectServiceError(res, err, 'Failed to remove member from project');
+    return;
+  }
+}

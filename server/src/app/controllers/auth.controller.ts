@@ -232,4 +232,130 @@ export async function getManagerAnalytics(req: Request, res: Response) : Promise
   }
 }
 
+// -----------------------------------------------------------------------------
+// OTP & PASSWORD RESET LOGIC
+// -----------------------------------------------------------------------------
 
+import Otp from '../../infrastructure/database/models/otp.model';
+import { sendOtpEmail } from '../utils/email.util';
+
+function generateRandomOtp(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+}
+
+export async function forgotPassword(req: Request, res: Response): Promise<void> {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Don't leak user existence for security
+      return sendSuccess({ res, data: null, status: 200, message: 'If the email exists, an OTP has been sent.' });
+    }
+    
+    const otp = generateRandomOtp();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Delete existing unused reset OTPs for this email to prevent spam
+    await Otp.deleteMany({ email, type: 'reset', isUsed: false });
+
+    await Otp.create({ email, otp, type: 'reset', expiresAt });
+    
+    // Attempt to send email
+    const emailSent = await sendOtpEmail({ to: email, otp, type: 'reset' });
+    if (!emailSent) {
+      return sendError({ res, error: 'Failed to send OTP email', status: 500 });
+    }
+
+    return sendSuccess({ res, data: null, status: 200, message: 'OTP sent successfully to email' });
+  } catch (err) {
+    return sendError({ res, error: 'Failed to process forgot password', details: err as any, status: 500 });
+  }
+}
+
+export async function resetPassword(req: Request, res: Response): Promise<void> {
+  try {
+    const { email, otp, newPassword } = req.body;
+    
+    const validOtp = await Otp.findOne({ email, otp, type: 'reset', isUsed: false, expiresAt: { $gt: new Date() } });
+    if (!validOtp) {
+      return sendError({ res, error: 'Invalid or expired OTP', status: 400 });
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+    const updatedUser = await User.findOneAndUpdate({ email }, { password: hashedPassword });
+    if (!updatedUser) {
+      return sendError({ res, error: 'User not found', status: 404 });
+    }
+
+    // Mark OTP as used
+    validOtp.isUsed = true;
+    await validOtp.save();
+
+    return sendSuccess({ res, data: null, status: 200, message: 'Password reset successfully' });
+  } catch (err) {
+    return sendError({ res, error: 'Failed to reset password', details: err as any, status: 500 });
+  }
+}
+
+export async function sendLoginOtp(req: Request, res: Response): Promise<void> {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return sendError({ res, error: 'User not found with this email', status: 404 });
+    }
+
+    const otp = generateRandomOtp();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); 
+
+    await Otp.deleteMany({ email, type: 'login', isUsed: false });
+    await Otp.create({ email, otp, type: 'login', expiresAt });
+    
+    const emailSent = await sendOtpEmail({ to: email, otp, type: 'login' });
+    if (!emailSent) {
+      return sendError({ res, error: 'Failed to send OTP email', status: 500 });
+    }
+
+    return sendSuccess({ res, data: null, status: 200, message: 'Login OTP sent successfully' });
+  } catch (err) {
+    return sendError({ res, error: 'Failed to send login OTP', details: err as any, status: 500 });
+  }
+}
+
+export async function loginWithOtp(req: Request, res: Response): Promise<void> {
+  try {
+    const { email, otp } = req.body;
+    
+    const validOtp = await Otp.findOne({ email, otp, type: 'login', isUsed: false, expiresAt: { $gt: new Date() } });
+    if (!validOtp) {
+      return sendError({ res, error: 'Invalid or expired OTP', status: 401 });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return sendError({ res, error: 'User not found', status: 404 });
+    }
+
+    validOtp.isUsed = true;
+    await validOtp.save();
+
+    const userObj = user.toObject();
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete (userObj as any).password;
+
+    const token = issueToken({
+      userId: (user as any)._id.toString(),
+      email: user.email,
+      role: user.role
+    });
+
+    return sendSuccess({
+      res,
+      data: { user: userObj, accessToken: token },
+      status: 200,
+      message: 'User logged in successfully via OTP',
+    });
+  } catch (err) {
+    return sendError({ res, error: 'Failed to login via OTP', details: err as any, status: 500 });
+  }
+}

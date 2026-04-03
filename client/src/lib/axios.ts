@@ -44,11 +44,21 @@ api.interceptors.request.use(
      }
 )
 
-// Response interceptor to handle auth errors
+// Response interceptor to handle auth errors and standard errors
+import toast from 'react-hot-toast';
+
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+
+        const serverErrorPayload = error.response?.data?.error || error.response?.data?.message;
+        const errorMessage = typeof serverErrorPayload === 'string' ? serverErrorPayload : 'An unexpected error occurred';
+
+        // Display toast error for user-facing API crashes (except 401s which handle redirect)
+        if (error.response?.status !== 401 && typeof window !== 'undefined') {
+             toast.error(errorMessage, { id: 'api-error' }); // Use an id to prevent duplicate spam
+        }
 
         // Handle 401 Unauthorized errors
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -63,11 +73,14 @@ api.interceptors.response.use(
             } catch (err) {
                 console.error('Error clearing auth state:', err);
                 // Fallback: clear localStorage directly
-                localStorage.removeItem('auth-storage');
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('auth-storage');
+                }
             }
             
             // Redirect to login page
             if (typeof window !== 'undefined') {
+                toast.error('Session expired. Please log in again.');
                 window.location.href = '/login';
             }
         }
@@ -79,7 +92,7 @@ api.interceptors.response.use(
 
         // Handle 500 Server errors
         if (error.response?.status >= 500) {
-            console.error('Server error occurred:', error.response?.data?.message || 'Internal server error');
+            console.error('Server error occurred:', errorMessage);
         }
 
         return Promise.reject(error);

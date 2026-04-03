@@ -169,7 +169,13 @@ export default function Login() {
             </Button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
+          <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 text-center space-y-4">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Prefer passwordless?{" "}
+              <Link href="/otp-login" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 font-semibold transition-colors">
+                Log in with Magic Code
+              </Link>
+            </p>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Don&apos;t have an account?{" "}
               <Link href="/signup" className="text-primary hover:text-blue-700 font-semibold transition-colors">

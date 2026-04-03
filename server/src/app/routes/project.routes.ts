@@ -9,9 +9,11 @@ import {
   getProjectsByManager,
   getProjectAnalytics,
   getMembersByProject,
-  getProjectsByMember
+  getProjectsByMember,
+  getManagerMembers,
+  removeMemberFromProject,
 } from '../controllers/project.controller';
-import { authMiddleware } from '../middlewares/authMiddleware';
+import { authMiddleware, requireRole } from '../middlewares/authMiddleware';
 import {
   managerParamSchema,
   memberParamSchema,
@@ -27,14 +29,24 @@ const router = Router();
 
 router.post('/', authMiddleware, validateRequest(projectSchema), createProject);
 router.get('/', authMiddleware, getProjects);
-router.get('/manager/:id/projects', authMiddleware, validateParams(managerParamSchema), getProjectsByManager);
+
+// Manager-scoped routes
 router.get('/manager/:id', authMiddleware, validateParams(managerParamSchema), getProjectsByManager);
+router.get('/manager/:id/projects', authMiddleware, validateParams(managerParamSchema), getProjectsByManager);
+router.get('/manager/:managerId/members', authMiddleware, requireRole(['manager', 'admin']), getManagerMembers);
+
+// Member-scoped routes
 router.get('/member/:userId/projects', authMiddleware, validateParams(memberParamSchema), getProjectsByMember);
 router.get('/members/:id/projects', authMiddleware, validateParams(objectIdParamSchema), getMembersByProject);
+
+// Project-level routes
 router.get('/:id/analytics', authMiddleware, validateParams(objectIdParamSchema), getProjectAnalytics);
 router.get('/:id', authMiddleware, validateParams(objectIdParamSchema), getProjectById);
 router.patch('/:id', authMiddleware, validateParams(objectIdParamSchema), validateRequest(projectUpdateSchema), updateProject);
 router.patch('/:id/status', authMiddleware, validateParams(objectIdParamSchema), validateRequest(projectStatusSchema), updateProjectStatus);
 router.delete('/:id', authMiddleware, validateParams(objectIdParamSchema), deleteProject);
+
+// Member management within a project
+router.delete('/:projectId/members/:memberId', authMiddleware, requireRole(['manager', 'admin']), removeMemberFromProject);
 
 export default router;

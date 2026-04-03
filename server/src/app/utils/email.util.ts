@@ -210,4 +210,64 @@ export async function sendWelcomeEmail({
   }
 }
 
+interface SendOtpEmailParams {
+  to: string;
+  otp: string;
+  type: 'login' | 'reset';
+}
+
+/**
+ * Send OTP email 
+ */
+export async function sendOtpEmail({
+  to,
+  otp,
+  type
+}: SendOtpEmailParams): Promise<boolean> {
+  try {
+    const subject = type === 'reset' ? 'Epoch - Password Reset Verification' : 'Epoch - Your Login Code';
+    const action = type === 'reset' ? 'reset your password' : 'log in to your account';
+
+    const mailOptions = {
+      from: `"Epoch Project Management" <${process.env.SMTP_FROM || 'noreply@epoch.com'}>`,
+      to,
+      subject,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; text-align: center; }
+            .otp-code { font-size: 36px; font-weight: bold; letter-spacing: 6px; background: #e0e7ff; color: #1e3a8a; padding: 20px; border-radius: 8px; margin: 20px auto; width: 60%; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔐 Verification Code</h1>
+            </div>
+            <div class="content">
+              <p>Hi there,</p>
+              <p>You requested an OTP to <strong>${action}</strong>.</p>
+              <div class="otp-code">${otp}</div>
+              <p>This code expires in 10 minutes. Do not share this code with anyone.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to send OTP email:', error);
+    return false;
+  }
+}
+
 export default transporter;

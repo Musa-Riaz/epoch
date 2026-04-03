@@ -10,6 +10,7 @@ import teamRoutes from './app/routes/team.routes';
 import invitationRoutes from './app/routes/invitation.routes';
 import activityRoutes from './app/routes/activity.routes';
 import notificationRoutes from './app/routes/notification.routes';
+import adminRoutes from './app/routes/admin.routes';
 import cors from 'cors'
 import morgan from 'morgan'
 import http from 'http'
@@ -91,6 +92,8 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/invitations', invitationRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRoutes);
+
 app.use("/api/health-check", (req, res) => {
   res.status(200).json({ status: 'ok' });
 })
