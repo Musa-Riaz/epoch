@@ -26,6 +26,7 @@ import {
   NotificationListResponse,
 } from "@/interfaces/api";
 
+
 export const authApi = {
   login: async (email: string, password: string) =>
     await api.post<ApiResponse<LoginResponse>>("/auth/login", {
@@ -57,7 +58,7 @@ export const authApi = {
     await api.get<ApiResponse<IUserResponse>>(`/auth/user/${id}`),
 
   getAllUsers: async () =>
-    await api.get<ApiResponse<IUserResponse[]>>("/auth/users"),
+    await api.get<ApiResponse<IUserResponse[] | any>>("/auth/users"),
 
   getManagerAnalytics: async (id: string) =>
     await api.get<ApiResponse<ManagerAnalyticsResponse>>(

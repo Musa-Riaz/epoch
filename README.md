@@ -24,8 +24,19 @@ A modern, full-stack project management platform built with Next.js, Express, Mo
 - ✅ **Team Collaboration**: Comments, mentions, and real-time updates
 - ✅ **Email Invitations**: Secure invite system with smart user detection
 - ✅ **Dashboard Analytics**: Project insights and team performance
+- ✅ **Super Admin Hub**: Platform-wide metrics, destructive user banning, and global monitoring
+- ✅ **Manager Aggregation**: Overview of sub-teams and their task completion rates
+- ✅ **Advanced Authentication**: Passwordless OTP & Forgot Password utilities
 
 ### Recently Added
+- 🚀 **High-End UI/UX Overhaul**
+  - Seamlessly animated framer-motion page transitions
+  - Beautiful, reactive glassmorphic mesh underlays and native dark-mode support
+- ⚡ **In-Process Memory Caching**
+  - Dramatically improves manager-dashboard request times using `node-cache` layer
+  - Dynamic pattern-based cache invalidation
+- 🛡️ **Super Admin Dashboard**
+  - Complete God-mode platform oversight of users, tasks, projects, and analytics
 - 🎉 **Email Invitation System** - Complete implementation
   - Send invitations via email
   - Smart existing user detection
@@ -357,7 +368,17 @@ http://localhost:5000/api
 - `POST /auth/register` - Register new user
 - `POST /auth/login` - Login user
 - `GET /auth/me` - Get current user
+- `POST /auth/forgot-password` - Trigger password reset OTP
+- `POST /auth/reset-password` - Reset password confirming OTP
+- `POST /auth/otp-login/send` - Request magic login code
+- `POST /auth/otp-login/verify` - Verify magic code & login
 - `GET /auth/manager/:managerId/analytics` - Get manager analytics
+
+#### Admin 🆕
+- `GET /admin/metrics` - Get system-wide platform statistics
+- `GET /admin/projects` - Get all global projects
+- `GET /admin/tasks` - Get all global tasks
+- `DELETE /admin/users/:id` - Terminate a user account
 
 #### Projects
 - `GET /projects` - Get all projects

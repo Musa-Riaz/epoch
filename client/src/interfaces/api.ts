@@ -59,20 +59,6 @@ export interface IUserResponse {
     updatedAt: string;
 }
 
-// export interface ITask {
-//   _id: string;
-//     title: string;
-//     description?: string;
-//     projectId: string;
-//     assignedTo?: string;
-//     status: 'todo' | 'in-progress' | 'done';
-//     priority: 'low' | 'medium' | 'high';
-//     media?: string[];
-//     dueDate?: Date;
-//     createdAt: Date;
-//     updatedAt: Date;  
-
-// }
 
 export interface CreateUserRequest {
     firstName: string;
