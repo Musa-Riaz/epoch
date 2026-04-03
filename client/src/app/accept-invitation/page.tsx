@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/stores/auth.store";
 import { CheckCircle, XCircle, Mail, User, Calendar, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { api } from "@/lib/axios";
 import axios from "axios";
 
 interface InvitationDetails {
@@ -42,8 +43,6 @@ export default function AcceptInvitationPage() {
   const [error, setError] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
 
-  const user_token = useAuthStore((state) => state.token);
-
   const fetchInvitationDetails = useCallback(async () => {
     if (!token) {
       setError("Invalid invitation link");
@@ -53,10 +52,7 @@ export default function AcceptInvitationPage() {
 
     try {
       setLoading(true);
-      const response = await axios.get(
-        // TODO:: Change it to .env variable when working with development
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/invitations/token/${token}`
-      );
+      const response = await api.get(`/invitations/token/${token}`);
       
       if (response.data.success) {
         setInvitation(response.data.data);
@@ -93,15 +89,7 @@ export default function AcceptInvitationPage() {
 
     try {
       setAccepting(true);
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/invitations/accept`, 
-        { token },
-        {
-          headers: {
-            Authorization: `Bearer ${user_token}`,
-          },
-        }
-      );
+      const response = await api.post(`/invitations/accept`, { token });
 
       if (response.data.success) {
         setAccepted(true);

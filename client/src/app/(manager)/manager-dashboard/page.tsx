@@ -34,6 +34,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useProjectStore } from "@/stores/project.store";
 import { useActivityStore } from "@/stores/activity.store";
 import { getSocket } from "@/lib/socket";
+import { api } from "@/lib/axios";
 import {
   BarChart3,
   Calendar,
@@ -70,7 +71,6 @@ const ManagerDashboard = () => {
   
 
   const { getManagerAnalytics, user } = useAuthStore();
-  const token = useAuthStore((state) => state.token);
   const { createProject, getProjectsByManager, getProjectAnalytics, projects } = useProjectStore();
   const { activities, getActivities, isLoading: isLoadingActivities, pushActivity } = useActivityStore();
 
@@ -288,19 +288,12 @@ const ManagerDashboard = () => {
         // Send invitation emails if any were provided
         if (memberEmails.length > 0) {
           try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/invitations/send`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                projectId: newProject._id,
-                emails: memberEmails,
-              }),
+            const response = await api.post('/invitations/send', {
+              projectId: newProject._id,
+              emails: memberEmails,
             });
 
-            const result = await response.json();
+            const result = response.data;
             
             if (result.success) {
               const successCount = result.data.results.filter((r: { success: boolean }) => r.success).length;
