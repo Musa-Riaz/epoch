@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Mail, Plus, X, Loader2, Clock, CheckCircle, XCircle, Send } from "lucide-react";
 import toast from "react-hot-toast";
+import { api } from "@/lib/axios";
 import axios from "axios";
 
 interface Invitation {
@@ -68,8 +69,8 @@ export default function ProjectInvitations({ projectId, projectName }: ProjectIn
   const fetchInvitations = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/invitations/project/${projectId}`,
+      const response = await api.get(
+        `/invitations/project/${projectId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -151,8 +152,8 @@ export default function ProjectInvitations({ projectId, projectName }: ProjectIn
 
     try {
       setSending(true);
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/invitations/send`,
+      const response = await api.post(
+        `/invitations/send`,
         {
           projectId,
           emails,
@@ -200,8 +201,8 @@ export default function ProjectInvitations({ projectId, projectName }: ProjectIn
   const handleCancelInvitation = async (invitationId: string) => {
     try {
       setCancellingId(invitationId);
-      const response = await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/invitations/${invitationId}`,
+      const response = await api.delete(
+        `/invitations/${invitationId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
